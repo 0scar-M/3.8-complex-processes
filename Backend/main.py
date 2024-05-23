@@ -108,7 +108,6 @@ def raise_error(error, error_action, code=500):
     Raises an HTTPException if result is Exception.
     async so that if there is an error, it waits before continuing.
     """
-    print(type(error), error_action)
     if issubclass(type(error), Exception):
         if error_action:
             raise HTTPException(status_code=code, detail=f"Error while {error_action}: {error}")
