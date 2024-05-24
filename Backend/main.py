@@ -103,6 +103,19 @@ def db_query(query_body: str, error_action: str, *query_params: tuple):
     except Exception as e:
         raise_error(e, error_action)
 
+@app.get("/supported-formats")
+async def supported_formats():
+    "Returns all valid formats."
+    return valid_formats
+
+@app.get("/supported-formats/{media_type}")
+async def supported_formats(media_type: str):
+    "Returns all valid formats for a specific media type if media_type is in media_formats.keys()"
+    if media_type in media_formats.keys():
+        return media_formats[media_type]
+    else:
+        raise HTTPException(status_code=404, detail=f"Invalid media type: {media_type}")
+
 def raise_error(error, error_action, code=500):
     """
     Raises an HTTPException if result is Exception.
