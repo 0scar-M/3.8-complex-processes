@@ -1,5 +1,6 @@
 from fastapi import FastAPI, File, UploadFile, Query, HTTPException
 from fastapi.responses import Response
+from fastapi.middleware.cors import CORSMiddleware
 import PIL as pil
 from PIL import Image
 import uuid
@@ -8,6 +9,20 @@ import os
 import io
 
 app = FastAPI()
+
+# Configure CORS
+origins = [
+    "http://127.0.0.1:5500",
+    "http://localhost:5500",
+]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 DATABASE = os.path.join(os.path.dirname(os.path.dirname(__file__)), r"Database/files.db")
 media_formats = {"image": ("JPEG", "PNG")} # tells the API what conversion method to use for which formats
@@ -34,7 +49,7 @@ async def upload_file(session_id: str = Query(...), file: UploadFile = File(...)
     file_id = file.filename+"|"+session_id
     session_ids = [x[0] for x in db_query("SELECT session_id FROM files", "getting list of session_ids from database")] # list of tuples of strings -> list of strings
     
-    if file_format in [x[0] for x in invalid_conversions]:
+    if file_format in [x[0] for x in invalid_conversions] or file_format not in valid_formats:
         raise HTTPException(status_code=400, detail=f"Invalid file format '{file_format}'")
     
     if new_session_id:
