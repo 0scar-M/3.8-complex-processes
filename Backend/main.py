@@ -101,7 +101,20 @@ async def convert_file(session_id: str = Query(...), to_format: str = Query(...)
             raise HTTPException(status_code=400, detail=f"Invalid file conversion '{' to '.join(conversion)}'")
     
     db_query("DELETE FROM files WHERE session_id=?", "removing file from database", session_id)
-    return Response(content=converted_io.getvalue())
+    return Response(content=converted_io.getvalue(), media_type="image/jpg")
+
+@app.get("/supported-formats")
+async def supported_formats():
+    "Returns all valid formats."
+    return valid_formats
+
+@app.get("/supported-conversions/{format}")
+async def supported_formats(format: str):
+    "Returns all valid formats for a specific media type if media_type is in media_formats.keys()"
+    if format in valid_formats:
+        return [x for x in media_formats.values() if format in x][0]
+    else:
+        raise HTTPException(status_code=404, detail=f"Invalid format: {format}")
 
 def db_query(query_body: str, error_action: str, *query_params: tuple):
     """
@@ -117,19 +130,6 @@ def db_query(query_body: str, error_action: str, *query_params: tuple):
             return cursor.fetchall()
     except Exception as e:
         raise_error(e, error_action)
-
-@app.get("/supported-formats")
-async def supported_formats():
-    "Returns all valid formats."
-    return valid_formats
-
-@app.get("/supported-formats/{media_type}")
-async def supported_formats(media_type: str):
-    "Returns all valid formats for a specific media type if media_type is in media_formats.keys()"
-    if media_type in media_formats.keys():
-        return media_formats[media_type]
-    else:
-        raise HTTPException(status_code=404, detail=f"Invalid media type: {media_type}")
 
 def raise_error(error, error_action, code=500):
     """
