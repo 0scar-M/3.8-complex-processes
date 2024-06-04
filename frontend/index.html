@@ -12,5 +12,11 @@
         <input type="file" id="file-input"><br>
         <input type="button" value="Upload" onclick="uploadFile();">
     </form>
+    <br>
+    <form id="convert" class="dependant-input">
+        <label for="format-select">Select a file format to convert to:</label><br>
+        <select id="format-select" disabled></select>
+        <input type="button" value="Convert" onclick="convertFile();" disabled>
+    </form>
 </body>
 </html>
