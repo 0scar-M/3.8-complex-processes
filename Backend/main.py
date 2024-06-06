@@ -75,19 +75,19 @@ async def convert_file(session_id: str = Query(...), to_format: str = Query(...)
     """
     if to_format == "JPG": to_format = "JPEG" # PIL uses 'JPEG' instead of 'JPG'
 
-    file_reponse = db_query("SELECT bytes, format, file_id FROM files WHERE session_id=?", "getting file from database", session_id)
-    if file_reponse:
-        file_reponse = file_reponse[0]
+    file_response = db_query("SELECT bytes, format, file_id, name FROM files WHERE session_id=?", "getting file from database", session_id)
+    if file_response:
+        file_response = file_response[0]
     else:
         raise HTTPException(status_code=404, detail=f"File not found for session_id '{session_id}'")
 
-    file_id = file_reponse[2]
-    conversion = (file_reponse[1], to_format)
+    file_id = file_response[2]
+    conversion = (file_response[1], to_format)
     match conversion:
         case (f, t) if f in media_formats["image"] and t in media_formats["image"] and (f, t) not in invalid_conversions:
             # Image conversion
             try:
-                image = Image.open(io.BytesIO(file_reponse[0]))
+                image = Image.open(io.BytesIO(file_response[0]))
                 converted_io = io.BytesIO()
                 image.save(converted_io, format=conversion[1], optimize=optimise) # optimize=True enables compression (lossless)
             except pil.UnidentifiedImageError as e:
@@ -101,10 +101,11 @@ async def convert_file(session_id: str = Query(...), to_format: str = Query(...)
         case _:
             raise HTTPException(status_code=400, detail=f"Invalid file conversion '{' to '.join(conversion)}'")
     
-    file_name = db_query("SELECT name FROM files WHERE session_id=?", "getting file name from database", session_id)[0][0]
-    file_type = db_query("SELECT format FROM files WHERE session_id=?", "getting file name from database", session_id)[0][0]
-    media_type = f"{[list(media_formats.keys())[list(media_formats.values()).index(x)] for x in media_formats.values() if file_type in x][0].lower()}/{file_type}"
-    headers = {"file-name": file_name, "media-type": media_type}
+    file_name = file_response[3]
+    new_file_type = conversion[1]
+    new_file_name = file_name.split(".")[0]+"."+new_file_type.lower()
+    media_type = f"{list(media_formats.keys())[list(media_formats.values()).index([x for x in media_formats.values() if new_file_type in x][0])]}/{new_file_type}".lower()
+    headers = {"file-name": new_file_name, "media-type": media_type}
     db_query("DELETE FROM files WHERE session_id=?", "removing file from database", session_id)
     return Response(content=converted_io.getvalue(), media_type=media_type, headers=headers)
 

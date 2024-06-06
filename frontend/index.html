@@ -15,14 +15,14 @@
         <input type="button" value="Upload" onclick="uploadFile();">
     </form>
     <br>
-    <form id="convert" class="dependant-input" action="event.preventDefault()">
+    <form id="convert" class="dependant-input" action="event.preventDefault();">
         <label for="format-select">Select a file format to convert to:</label><br>
         <select id="format-select" disabled></select>
-        <input type="button" value="Convert" onclick="convertFile(); event.preventDefault();" disabled>
+        <input type="button" value="Convert" onclick="event.preventDefault(); convertFile();" disabled>
     </form>
     <br>
     <a id="download" class="dependant-input" download>
-        <input type="button" id="download-button" value="Download" action="event.preventDefault();" disabled>
+        <!-- <input type="button" id="download-button" action="event.preventDefault();" disabled> -->
     </a>
 </body>
 </html>
