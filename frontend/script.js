@@ -3,10 +3,7 @@ const backendURL = "http://127.0.0.1:8000";
 window.onload = function onLoad() {
     setSessionVar("sessionID", "new");
     setSessionVar("uploadedFormat", "");
-    setSessionVar("convertedDownloadLink", "");
-    setSessionVar("convertedFileName", "");
     setSessionVar("convertDisabled", true);
-    setSessionVar("downloadDisabled", true);
     
     updateUserProgress();
 }
@@ -46,16 +43,6 @@ async function updateUserProgress() {
         document.getElementById("format-select").innerHTML = "";
     }
 
-    // Update download file link.
-    let link = sessionStorage.getItem("convertedDownloadLink");
-    let linkElement = document.getElementById("download");
-    if (link !== "" && link !== null) {
-        linkElement.href = link;
-        linkElement.download = sessionStorage.getItem("convertedFileName");
-    } else {
-        linkElement.href = "";
-    }
-
     // Update disabled property of children of .input elements.
     const parents = document.getElementsByClassName("dependant-input");
     for (let x = 0; x < parents.length; x++) {
@@ -88,7 +75,6 @@ async function uploadFile() {
             if (response.ok) {
                 sessionStorage.setItem("uploadedFormat", fileFormat);
                 sessionStorage.setItem("sessionID", json["session_id"]);
-                sessionStorage.setItem("downloadDisabled", true);
                 alert("File uploaded successfully.");
             } else if (String(response.status)[0] == "4") {
                 // If 4__ error code
@@ -101,8 +87,6 @@ async function uploadFile() {
             }
             
             sessionStorage.setItem("convertDisabled", false);
-            sessionStorage.setItem("convertedDownloadLink", "");
-            sessionStorage.setItem("convertedFileName", "");
         } catch (error) {
             alert("An error occured while uploading file. Please try again.");
             console.error(`Backend response error while uploading file: ${error}`);
@@ -133,10 +117,10 @@ async function convertFile() {
                     throw new Error("Media type header missing");
                 }
                 let blob = await response.blob();
-                let link = window.URL.createObjectURL(blob)
-                sessionStorage.setItem("convertedDownloadLink", link);
-                sessionStorage.setItem("convertedFileName", fileName);
-                // alert("File converted successfully."); causes page reload which depricates download url
+                let link = window.URL.createObjectURL(blob);
+                document.getElementById("download").href = link;
+                document.getElementById("download").download = fileName;
+                alert("File converted successfully.");
             } else {
                 // If response not ok but no error raised
                 let json = await response.json();
@@ -151,8 +135,9 @@ async function convertFile() {
         sessionStorage.setItem("sessionID", "new");
         sessionStorage.setItem("uploadedFormat", "");
         sessionStorage.setItem("convertDisabled", true);
-        sessionStorage.setItem("downloadDisabled", false);
-        updateUserProgress();
+        await updateUserProgress();
+        // download file
+        document.getElementById("download").click();
     } else {
         alert("Please select a format to convert to.");
     }
