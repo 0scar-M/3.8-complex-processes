@@ -7,16 +7,22 @@
     <script type="text/javascript" src="script.js"></script>
 </head>
 <body>
+    <h1>Welcome to Web Media Converter</h1>
+    <p>Upload a file to begin:</p>
     <form id="upload">
         <label for="file-input">Select a file:</label><br>
         <input type="file" id="file-input"><br>
         <input type="button" value="Upload" onclick="uploadFile();">
     </form>
     <br>
-    <form id="convert" class="dependant-input">
+    <form id="convert" class="dependant-input" action="event.preventDefault()">
         <label for="format-select">Select a file format to convert to:</label><br>
         <select id="format-select" disabled></select>
-        <input type="button" value="Convert" onclick="convertFile();" disabled>
+        <input type="button" value="Convert" onclick="convertFile(); event.preventDefault();" disabled>
     </form>
+    <br>
+    <a id="download" class="dependant-input" download>
+        <input type="button" id="download-button" value="Download" action="event.preventDefault();" disabled>
+    </a>
 </body>
 </html>

@@ -22,6 +22,7 @@ app.add_middleware(
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+    expose_headers=["*"]
 )
 
 DATABASE = os.path.join(os.path.dirname(os.path.dirname(__file__)), r"Database/files.db")
@@ -100,8 +101,12 @@ async def convert_file(session_id: str = Query(...), to_format: str = Query(...)
         case _:
             raise HTTPException(status_code=400, detail=f"Invalid file conversion '{' to '.join(conversion)}'")
     
+    file_name = db_query("SELECT name FROM files WHERE session_id=?", "getting file name from database", session_id)[0][0]
+    file_type = db_query("SELECT format FROM files WHERE session_id=?", "getting file name from database", session_id)[0][0]
+    media_type = f"{[list(media_formats.keys())[list(media_formats.values()).index(x)] for x in media_formats.values() if file_type in x][0].lower()}/{file_type}"
+    headers = {"file-name": file_name, "media-type": media_type}
     db_query("DELETE FROM files WHERE session_id=?", "removing file from database", session_id)
-    return Response(content=converted_io.getvalue(), media_type="image/jpg")
+    return Response(content=converted_io.getvalue(), media_type=media_type, headers=headers)
 
 @app.get("/supported-formats")
 async def supported_formats():
