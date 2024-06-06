@@ -2,11 +2,13 @@ const backendURL = "http://127.0.0.1:8000";
 
 window.onload = function onLoad() {
     setSessionVar("sessionID", "new");
+    setSessionVar("uploadedFormat", "");
+    setSessionVar("convertedDownloadLink", "");
+    setSessionVar("convertedFileName", "");
     setSessionVar("convertDisabled", true);
     setSessionVar("downloadDisabled", true);
     
-    updateDependantInput();
-    updateConvertFormats();
+    updateUserProgress();
 }
 
 function setSessionVar(varName, initValue) {
@@ -18,59 +20,60 @@ function setSessionVar(varName, initValue) {
     }
 }
 
-function updateDependantInput(parentID = "", state = "") {
+async function updateUserProgress() {
     /*
-    Dependant input are input 'groups' that are dependant on the user having already done something.
-    If parentID and state aren't "", this sets the disabled property of all children of parent tag to state.
-    If they == "", then the dependant input's visibility is updated.
+    Updates the user's progress on the page as the page is realoded everytime a button is pressed.
      */
-    if (parentID !== "" && state !== "") {
-        sessionStorage.setItem(`${parentID}Disabled`, state);
+
+    // Update conversion formats dropdown and session storage.
+    let fileFormat = sessionStorage.getItem("uploadedFormat");
+    if (fileFormat !== "") {
+        let response = await (await fetch(
+            `${backendURL}/supported-conversions/${fileFormat}`, 
+            {method: "get"}
+        )).json();
+        sessionStorage.setItem("convertFormats", response);
     }
+    let formats = sessionStorage.getItem("convertFormats");
+    if (formats !== "" && formats !== null) {
+        formats = formats.split(",");
+        for (let x = 0; x < formats.length; x++) {
+            let option = document.createElement("option");
+            option.value, option.innerHTML = `<option value="${formats[x]}">${formats[x]}</option>`;
+            document.getElementById("format-select").appendChild(option);
+        }
+    } else {
+        document.getElementById("format-select").innerHTML = "";
+    }
+
+    // Update download file link.
+    let link = sessionStorage.getItem("convertedDownloadLink");
+    let linkElement = document.getElementById("download");
+    if (link !== "" && link !== null) {
+        linkElement.href = link;
+        linkElement.download = sessionStorage.getItem("convertedFileName");
+    } else {
+        linkElement.href = "";
+    }
+
     // Update disabled property of children of .input elements.
     const parents = document.getElementsByClassName("dependant-input");
     for (let x = 0; x < parents.length; x++) {
-        parent = parents[x];
-        children = parent.children;
+        let parent = parents[x];
+        let children = parent.children;
         for (let y = 0; y < children.length; y++) {
-            child = children[y];
-            state = (sessionStorage.getItem(`${parent.id}Disabled`) === "true");
+            let child = children[y];
+            let state = (sessionStorage.getItem(`${parent.id}Disabled`) === "true");
             child.disabled = state;
         };
     };
 }
 
-async function updateConvertFormats(fileFormat = "") {
-    /*
-    Updates the convertFormats session storage and updates the options for select #format-select.
-    if fileFormat = "" or undefined, only select #format-select will be updated.
-     */
-    let formats
-    if (fileFormat !== "") {
-        formats = await (await fetch(
-            `${backendURL}/supported-conversions/${fileFormat}`, 
-            { method: "get" }
-        )).json();
-        sessionStorage.setItem("convertFormats", formats);
-    } else {
-        formats = sessionStorage.getItem("convertFormats");
-        if (formats !== null) {
-            formats = formats.split(",");
-        }
-    }
-
-    if (formats !== null) {
-        for (let x = 0; x < formats.length; x++) {
-            document.getElementById("format-select").innerHTML += `<option value="${formats[x]}">${formats[x]}</option>`;
-        }
-    }
-}
-
 async function uploadFile() {
     let file = document.getElementById("file-input").files[0];
-    let fileFormat = file.type.split("/")[1].toUpperCase();
 
     if (file) {
+        let fileFormat = file.type.split("/")[1].toUpperCase();
         let formData = new FormData();
         formData.append("file", file)
         
@@ -83,23 +86,26 @@ async function uploadFile() {
             let json = await response.json();
 
             if (response.ok) {
+                sessionStorage.setItem("uploadedFormat", fileFormat);
                 sessionStorage.setItem("sessionID", json["session_id"]);
+                sessionStorage.setItem("downloadDisabled", true);
+                alert("File uploaded successfully.");
             } else if (String(response.status)[0] == "4") {
                 // If 4__ error code
                 console.error(`Backend response error: ${json["detail"]}`);
                 alert(json["detail"]);
             } else {
                 // If response not ok but no error raised
-                alert("An error occured while uploading file. Please try again.");
-                console.error("An error occured while uploading file. Backend response: " + JSON.stringify(json));
+                alert(`An error occured while uploading file: ${json.detail}`);
+                console.error(`Backend response error while uploading file: ${json.detail}`);
             }
             
-            updateDependantInput("convert", false);
-            await updateConvertFormats(fileFormat);
+            sessionStorage.setItem("convertDisabled", false);
+            sessionStorage.setItem("convertedDownloadLink", "");
+            sessionStorage.setItem("convertedFileName", "");
         } catch (error) {
-            // If error was thrown when getting backend response.
-            console.error(`Error while uploading file: ${error}`);
             alert("An error occured while uploading file. Please try again.");
+            console.error(`Backend response error while uploading file: ${error}`);
         }
     } else {
         alert("Please select a file to upload.");
@@ -109,14 +115,44 @@ async function uploadFile() {
 async function convertFile() {
     let toFormat = document.getElementById("format-select").value;
     let optimise = true; // Change to check buttton in future.
+
     if (toFormat) {
-        let response = await fetch(
-            `${backendURL}/convert/?session_id=${sessionStorage.getItem("sessionID")}&to_format=${toFormat}&optimise=${optimise}`, 
-            {method: "GET"}
-        );
-        if (response.ok) {
-            alert("File converted successfully.")
+        try {
+            let response = await fetch(
+                `${backendURL}/convert/?session_id=${sessionStorage.getItem("sessionID")}&to_format=${toFormat}&optimise=${optimise}`, 
+                {method: "GET"}
+            );
+
+            if (response.ok) {
+                // Get the file name from the headers
+                let fileName = response.headers.get("file-name");
+                let mediaType = response.headers.get("media-type");
+                if (!fileName) {
+                    throw new Error("File name header missing");
+                } if (!mediaType) {
+                    throw new Error("Media type header missing");
+                }
+                let blob = await response.blob();
+                let link = window.URL.createObjectURL(blob)
+                sessionStorage.setItem("convertedDownloadLink", link);
+                sessionStorage.setItem("convertedFileName", fileName);
+                // alert("File converted successfully."); causes page reload which depricates download url
+            } else {
+                // If response not ok but no error raised
+                let json = await response.json();
+                alert(`An error occured while converting file: ${json.detail}`);
+                console.error(`Backend response error while converting file: ${json.detail}`);
+            }
+        } catch (error) {
+            // If error was thrown when getting backend response.
+            alert("An error occurred while converting file. Please try again.");
+            console.error(`Error during file conversion: ${error}`);
         }
+        sessionStorage.setItem("sessionID", "new");
+        sessionStorage.setItem("uploadedFormat", "");
+        sessionStorage.setItem("convertDisabled", true);
+        sessionStorage.setItem("downloadDisabled", false);
+        updateUserProgress();
     } else {
         alert("Please select a format to convert to.");
     }
