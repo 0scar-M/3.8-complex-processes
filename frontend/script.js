@@ -82,10 +82,9 @@ async function uploadFile() {
                 alert(json["detail"]);
             } else {
                 // If response not ok but no error raised
-                alert(`An error occured while uploading file: ${json.detail}`);
-                console.error(`Backend response error while uploading file: ${json.detail}`);
+                alert(`An error occured while uploading file: ${json["detail"]}`);
+                console.error(`Backend response error while uploading file: ${json["detail"]}`);
             }
-            
             sessionStorage.setItem("convertDisabled", false);
         } catch (error) {
             alert("An error occured while uploading file. Please try again.");
@@ -103,32 +102,32 @@ async function convertFile() {
     if (toFormat) {
         try {
             let response = await fetch(
-                `${backendURL}/convert/?session_id=${sessionStorage.getItem("sessionID")}&to_format=${toFormat}&optimise=${optimise}`, 
+                `${backendURL}/download/?session_id=${sessionStorage.getItem("sessionID")}&to_format=${toFormat}&optimise=${optimise}`, 
                 {method: "GET"}
             );
 
             if (response.ok) {
                 // Get the file name from the headers
                 let fileName = response.headers.get("file-name");
-                let mediaType = response.headers.get("media-type");
-                if (!fileName) {
-                    throw new Error("File name header missing");
-                } if (!mediaType) {
-                    throw new Error("Media type header missing");
-                }
                 let blob = await response.blob();
                 let link = window.URL.createObjectURL(blob);
+
                 document.getElementById("download").href = link;
                 document.getElementById("download").download = fileName;
                 alert("File converted successfully.");
+            }  else if (String(response.status)[0] == "4") {
+                // If 4__ error code
+                let json = await response.json();
+                console.error(`Backend response error: ${json["detail"]}`);
+                alert(json["detail"]);
             } else {
                 // If response not ok but no error raised
                 let json = await response.json();
-                alert(`An error occured while converting file: ${json.detail}`);
-                console.error(`Backend response error while converting file: ${json.detail}`);
+                alert(`An error occured while converting file: ${json["detail"]}`);
+                console.error(`Backend response error while converting file: ${json["detail"]}`);
             }
         } catch (error) {
-            // If error was thrown when getting backend response.
+            // If error was thrown while getting backend response.
             alert("An error occurred while converting file. Please try again.");
             console.error(`Error during file conversion: ${error}`);
         }
