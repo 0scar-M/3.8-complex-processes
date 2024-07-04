@@ -1,0 +1,100 @@
+body {
+    margin: auto;
+    text-align: center;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+input, button {
+    font-family: inherit;
+    font-size: inherit;
+    cursor: pointer;
+}
+
+input[type="file"]::file-selector-button {
+    font-family: inherit;
+    font-size: inherit;
+    background-color: #14abf7;
+    color: white;
+    padding: 10px 20px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+}
+
+#file-select {
+    padding: 1em;
+    margin-left: 10%;
+    margin-right: 10%;
+    background: #f4f4f4;
+    border: 2px #808080 dashed;
+    border-radius: 10px;
+    font-size: 0.9em;
+    cursor: pointer;
+}
+
+#advanced-options {
+    cursor: pointer;
+}
+
+.tooltip {
+    position: relative;
+    display: inline-block;
+    color: gray;
+}
+
+.tooltip .tooltiptext {
+    visibility: hidden;
+    width: 120px;
+    background-color: #555;
+    color: #fff;
+    text-align: center;
+    padding: 5px 0;
+    border-radius: 5px;
+
+    /* Position the tooltip */
+    position: absolute;
+    z-index: 1;
+    bottom: 125%;
+    left: 50%;
+    margin-left: -60px;
+}
+
+/* Show tooltip on hover */
+.tooltip:hover .tooltiptext {
+    visibility: visible;
+    opacity: 1;
+}
+
+#submit-convert {
+    margin-top: 2em;
+    background-color: #14abf7;
+    color: white;
+    padding: 10px 20px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+}
+
+.loader {
+    margin: auto;
+    margin-top: 1em;
+    height: calc(1em - 12px);
+    padding: 6px;
+    aspect-ratio: 1;
+    border-radius: 50%;
+    border: 6px solid #ddd;
+    border-right-color: #14abf7;
+    animation: l2 1s infinite linear;
+}
+@keyframes l2 {to{transform: rotate(1turn)}}
+
+#convert-loader {
+    display: none;
+}
+
+@media only screen and (min-width: 900px) {
+    #file-select {
+        margin-left: 30%;
+        margin-right: 30%;
+    }
+}

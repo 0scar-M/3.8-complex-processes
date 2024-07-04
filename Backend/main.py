@@ -9,18 +9,16 @@ import sqlite3 as sql
 import time
 import uuid
 
-
 # Configure FastAPI app
 app = FastAPI()
 
 # Configure CORS middleware
-origins = [
-    "http://127.0.0.1:5500",
-    "http://localhost:5500"
-]
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,
+    allow_origins=[
+        "http://127.0.0.1:5500",
+        "http://localhost:5500"
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -49,8 +47,11 @@ class DB:
         """
         expired_time = time.time() - self.timeout_secs
         try:
-            self.cursor.execute("DELETE FROM sessions WHERE last_changed_at < ?", (expired_time,))
-            self.conn.commit()
+            session_ids = self.cursor.execute("SELECT session_id FROM sessions WHERE last_changed_at < ?", (expired_time,)).fetchall()
+            for x in session_ids:
+                self.cursor.execute("DELETE FROM sessions WHERE session_id=?", (x[0],))
+                self.cursor.execute("DELETE FROM files WHERE session_id=?", (x[0],))
+                self.conn.commit()
         except Exception as e:
             self.conn.rollback()
             raise_error(e, "removing expired session from database")
@@ -83,9 +84,9 @@ def raise_error(error, error_action, code=500):
     """
     if issubclass(type(error), Exception):
         if error_action:
-            raise HTTPException(status_code=code, detail=f"Error while {error_action}: {error}")
+            raise HTTPException(status_code=code, detail=f"{error} while {error_action}")
         else:
-            raise HTTPException(status_code=code, detail=f"Error: {error}")
+            raise HTTPException(status_code=code, detail=error)
 
 # Dependency function
 def get_db():
@@ -119,64 +120,83 @@ async def upload_file(session_id: str = Query(...), file: UploadFile = File(...)
     
     if new_session_id:
         db.query("INSERT INTO sessions VALUES (?, ?);", "inserting session data into database", session_id, time.time())
-        db.query("INSERT INTO files VALUES (?, ?, ?, ?, ?, NULL);", "inserting file data into database", file_id, session_id, file_name, file_format, file_contents)
+        db.query("INSERT INTO files VALUES (?, ?, ?, ?, ?, 0);", "inserting file data into database", file_id, session_id, file_name, file_format, file_contents)
     elif session_id in session_ids:
+        db.query("UPDATE files SET file_id=?, session_id=?, name=?, format=?, contents=? WHERE session_id=?;", "updating file data in database", file_id, session_id, file_name, file_format, file_contents, session_id)
         db.query("UPDATE sessions SET last_changed_at=? WHERE session_id=?;", "updating session data in database", time.time(), session_id)
-        db.query("UPDATE files SET file_id=?, session_id=?, name=?, format=?, contents=? WHERE session_id=?;", "updating file data in database", file_id, session_id, file_name, file_format, file_contents)
     else:
         raise HTTPException(status_code=404, detail=f"Invalid session_id value '{session_id}'")
     
     return {
-        "file_name": file_name,
-        "file_id": file_id,
+        "file_name": file_name, 
         "session_id": session_id
     }
 
-@app.get("/download/")
-async def download_file(session_id: str = Query(...), to_format: str = Query(...), optimise: bool = Query(...), db: DB = Depends(get_db)):
+@app.patch("/convert/")
+async def convert_file(session_id: str = Query(...), to_format: str = Query(...), optimise: bool = Query(...), db: DB = Depends(get_db)):
     """
-    Returns converted file in desired format.
+    Converts file in database to desired format.
     optimise sets the optimize property in Image.save() to True. It is lossless compression only.
     Will return 404 if the session_id is invalid.
     """
     if to_format == "JPG": to_format = "JPEG" # PIL uses 'JPEG' instead of 'JPG'
 
-    file_response = db.query("SELECT contents, format, file_id, name FROM files WHERE session_id=?", "getting file from database", session_id)
+    file_response = db.query("SELECT contents, format, file_id, name, converted FROM files WHERE session_id=?", "getting file from database", session_id)
     if file_response:
         file_response = file_response[0]
+        if file_response[4] == 1:
+            raise HTTPException(status_code=404, detail=f"File already converted for session_id: '{session_id}'")
     else:
-        raise HTTPException(status_code=404, detail=f"File not found for session_id '{session_id}'")
+        raise HTTPException(status_code=404, detail=f"File not found for session_id: '{session_id}'")
 
-    file_id = file_response[2]
     conversion = (file_response[1], to_format)
+    file_id = file_response[2]
+    file_name = file_response[3]
+    new_file_name = file_name.split(".")[0]+"."+conversion[1].lower()
     match conversion:
         case (f, t) if f in media_formats["image"] and t in media_formats["image"] and (f, t) not in invalid_conversions:
             # Image conversion
             try:
                 image = Image.open(io.BytesIO(file_response[0]))
                 converted_io = io.BytesIO()
+                if image.mode != "RGB": # switch to RGB mode if not in it.
+                    image = image.convert("RGB")
                 image.save(converted_io, format=conversion[1], optimize=optimise) # optimize=True enables compression (lossless)
+                db.query("UPDATE files SET name=?, contents=?, format=?, converted=1 WHERE file_id=?", "converting file in database", new_file_name, converted_io.getvalue(), conversion[1], file_id)
+                db.query("UPDATE sessions SET last_changed_at=? WHERE session_id=?", "updating session data in database", time.time(), session_id)
             except pil.UnidentifiedImageError as e:
                 # corrupted file
-                db.query("DELETE FROM files WHERE file_id=?", "removing file from database", file_id)
-                raise_error(e, "converting image", code=400)
+                raise_error(e, "converting file", code=400)
             except Exception as e:
-                # remove the file from the db because if there was a conversion error, they will have to re-upload a file anyway.
-                db.query("DELETE FROM files WHERE file_id=?", "removing file from database", file_id)
-                raise_error(e, "converting image")
+                raise_error(e, "converting file")
         case _:
             raise HTTPException(status_code=400, detail=f"Invalid file conversion '{' to '.join(conversion)}'")
     
-    file_name = file_response[3]
-    new_file_type = conversion[1]
-    new_file_name = file_name.split(".")[0]+"."+new_file_type.lower()
-    media_type = f"{list(media_formats.keys())[list(media_formats.values()).index([x for x in media_formats.values() if new_file_type in x][0])]}/{new_file_type}".lower()
-    db.query("DELETE FROM files WHERE session_id=?", "removing file from database", session_id)
+    return {
+        "new_file_name": new_file_name
+    }
+
+@app.get("/download/")
+async def download_file(session_id: str = Query(...), db: DB = Depends(get_db)):
+    """
+    Returns all files for a certain session_id.
+    Will return 404 if the session_id is invalid.
+    """
+
+    response = db.query("SELECT name, contents, format FROM files WHERE session_id=?", "getting file from database", session_id)
+    if response:
+        response = response[0]
+    else:
+        raise HTTPException(status_code=404, detail=f"File not found for session_id: '{session_id}'")
     
+    file_name = response[0]
+    file_contents = response[1]
+    file_media_type = f"{list(media_formats.keys())[list(media_formats.values()).index([x for x in media_formats.values() if response[2] in x][0])]}/{response[2]}".lower()
+
     return Response(
-        content=converted_io.getvalue(), 
-        media_type=media_type, 
-        headers={"file-name": new_file_name}
+        content=file_contents, 
+        media_type=file_media_type, 
+        headers={"file_name": file_name}
     )
 
 @app.get("/supported-formats")

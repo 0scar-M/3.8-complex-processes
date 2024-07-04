@@ -1,143 +1,214 @@
 const backendURL = "http://127.0.0.1:8000";
+const convertSelectPlaceholder = "please select a file";
+let sessionID = "new";
 
-window.onload = function onLoad() {
-    setSessionVar("sessionID", "new");
-    setSessionVar("uploadedFormat", "");
-    setSessionVar("convertDisabled", true);
-    
-    updateUserProgress();
-}
+async function updateToFormats() {
+    /* Updates the options of the format-select element. */
 
-function setSessionVar(varName, initValue) {
-    /*
-    If varName is not in sessionStorage, create it and set it to initValue.
-     */
-    if (!sessionStorage.getItem(varName)) {
-        sessionStorage.setItem(varName, initValue);
-    }
-}
-
-async function updateUserProgress() {
-    /*
-    Updates the user's progress on the page as the page is realoded everytime a button is pressed.
-     */
-
-    // Update conversion formats dropdown and session storage.
-    let fileFormat = sessionStorage.getItem("uploadedFormat");
-    if (fileFormat !== "") {
-        let response = await (await fetch(
-            `${backendURL}/supported-conversions/${fileFormat}`, 
-            {method: "get"}
-        )).json();
-        sessionStorage.setItem("convertFormats", response);
-    }
-    let formats = sessionStorage.getItem("convertFormats");
-    if (formats !== "" && formats !== null) {
-        formats = formats.split(",");
-        for (let x = 0; x < formats.length; x++) {
+    function setOptions(value, clear) {
+        /* Adds option to the #format-select select. */
+        if (clear) {
+            document.getElementById("format-select").innerHTML = "";
+        } else {
             let option = document.createElement("option");
-            option.value, option.innerHTML = `<option value="${formats[x]}">${formats[x]}</option>`;
+            option.value = value;
+            option.innerHTML = value;
             document.getElementById("format-select").appendChild(option);
         }
-    } else {
-        document.getElementById("format-select").innerHTML = "";
+    }
+    // Get supported formats from backend.
+    try {
+        let response = await fetch(
+            `${backendURL}/supported-formats`, 
+            {method: "get"}
+        );
+        json = await response.json();
+        if (response.ok && json.constructor.name == "Array") {
+            validFormats = json;
+        }
+    } catch (error) {
+        handleError(error, "getting supported formats");
     }
 
-    // Update disabled property of children of .input elements.
-    const parents = document.getElementsByClassName("dependant-input");
-    for (let x = 0; x < parents.length; x++) {
-        let parent = parents[x];
-        let children = parent.children;
-        for (let y = 0; y < children.length; y++) {
-            let child = children[y];
-            let state = (sessionStorage.getItem(`${parent.id}Disabled`) === "true");
-            child.disabled = state;
-        };
-    };
-}
+    let fileFormat = "";
+    try {
+        fileFormat = document.getElementById("file-input").files[0].name.split(".")[1].toUpperCase();
+    } catch {}
+    
+    if (fileFormat == "JPG") {
+        fileFormat = "JPEG"; // Backend uses JPEG not JPG
+    }
 
-async function uploadFile() {
-    let file = document.getElementById("file-input").files[0];
-
-    if (file) {
-        let fileFormat = file.type.split("/")[1].toUpperCase();
-        let formData = new FormData();
-        formData.append("file", file)
-        
+    if (fileFormat !== "" && validFormats.includes(fileFormat)) {
         try {
             let response = await fetch(
-                `${backendURL}/upload/?session_id=${sessionStorage.getItem("sessionID")}`, 
+                `${backendURL}/supported-conversions/${fileFormat}`, 
+                {method: "get"}
+            );
+            if (response.ok) {
+                let formats = await response.json();
+                if (Array.isArray(formats)) {
+                    document.getElementById("format-select").innerHTML = "";
+                    formats.forEach(format => {
+                        setOptions(format, false);
+                    });
+                } else {
+                    handleError(json["detail"], "getting conversion formats");
+                    setOptions(convertSelectPlaceholder, true);
+                }
+            } else {
+                handleError(json["detail"], "getting conversion formats");
+                setOptions(convertSelectPlaceholder, true);
+            }
+        } catch (error) {
+            handleError(error, "getting conversion formats")
+            setOptions(convertSelectPlaceholder, true);
+        }
+        setUserFeedback("", "black");
+    } else if (!validFormats.includes(fileFormat)) {
+        setUserFeedback("Please select a file with a valid format.", "orange");
+        setOptions(convertSelectPlaceholder, true);
+    } else {
+        setOptions(convertSelectPlaceholder, true);
+    }
+}
+
+async function convertFile() {
+    /* 
+    Converts the file.
+    Called by the submission of the #convert form.
+    */
+
+    let file = document.getElementById("file-input").files[0];
+    let fileFormat = "";
+
+    if (file) {
+        fileFormat = file.name.split(".")[1].toUpperCase();
+        if (fileFormat == "JPG") {
+            fileFormat = "JPEG"; // Backend uses JPEG not JPG
+        }
+    } else {
+        setUserFeedback("Please select a file to convert.", "orange");
+        return;
+    }
+    let toFormat = document.getElementById("format-select").value;
+    let optimise = document.getElementById("optimise-select").value;
+    let validFormats = [];
+
+    // Get supported formats from backend.
+    try {
+        let response = await fetch(
+            `${backendURL}/supported-formats`, 
+            {method: "get"}
+        );
+        json = await response.json();
+        if (response.ok && json.constructor.name == "Array") {
+            validFormats = json;
+        }
+    } catch (error) {
+        handleError(error, "getting supported formats");
+    }
+    
+    if (validFormats.includes(fileFormat) && toFormat !== convertSelectPlaceholder) {
+        document.getElementById("convert-loader").style.display = "block"; // Show loader
+
+        // Upload file
+        try {
+            let formData = new FormData();
+            formData.append("file", file);
+
+            let response = await fetch(
+                `${backendURL}/upload/?session_id=${sessionID}`, 
                 {method: "POST", 
                 body: formData}
             );
             let json = await response.json();
 
             if (response.ok) {
-                sessionStorage.setItem("uploadedFormat", fileFormat);
-                sessionStorage.setItem("sessionID", json["session_id"]);
-                alert("File uploaded successfully.");
-            } else if (String(response.status)[0] == "4") {
-                // If 4__ error code
-                console.error(`Backend response error: ${json["detail"]}`);
-                alert(json["detail"]);
+                sessionID = json["session_id"];
+                setUserFeedback("File uploaded successfully.", "black");
             } else {
-                // If response not ok but no error raised
-                alert(`An error occured while uploading file: ${json["detail"]}`);
-                console.error(`Backend response error while uploading file: ${json["detail"]}`);
+                handleError(json["detail"], "uploading file");
+                return;
             }
-            sessionStorage.setItem("convertDisabled", false);
         } catch (error) {
-            alert("An error occured while uploading file. Please try again.");
-            console.error(`Backend response error while uploading file: ${error}`);
+            handleError(error, "uploading file");
+            return;
         }
-    } else {
-        alert("Please select a file to upload.");
-    }
-}
 
-async function convertFile() {
-    let toFormat = document.getElementById("format-select").value;
-    let optimise = true; // Change to check buttton in future.
-
-    if (toFormat) {
+        // Convert file
         try {
             let response = await fetch(
-                `${backendURL}/download/?session_id=${sessionStorage.getItem("sessionID")}&to_format=${toFormat}&optimise=${optimise}`, 
+                `${backendURL}/convert/?session_id=${sessionID}&to_format=${toFormat}&optimise=${optimise}`, 
+                {method: "PATCH"}
+            );
+            let json = await response.json();
+
+            if (response.ok) {
+                setUserFeedback(`File converted successfully from: '${file.name}' to: '${json["new_file_name"]}'`, "green");
+            } else {
+                handleError(json["detail"], "downloading file");
+                return;
+            }
+        } catch (error) {
+            handleError(error, "converting file");
+            return;
+        }
+
+        // Download file
+        try {
+            let response = await fetch(
+                `${backendURL}/download/?session_id=${sessionID}`, 
                 {method: "GET"}
             );
 
             if (response.ok) {
-                // Get the file name from the headers
-                let fileName = response.headers.get("file-name");
+                let fileName = response.headers.get("file_name");
                 let blob = await response.blob();
                 let link = window.URL.createObjectURL(blob);
-
-                document.getElementById("download").href = link;
-                document.getElementById("download").download = fileName;
-                alert("File converted successfully.");
-            }  else if (String(response.status)[0] == "4") {
-                // If 4__ error code
-                let json = await response.json();
-                console.error(`Backend response error: ${json["detail"]}`);
-                alert(json["detail"]);
+                let a = document.createElement('a');
+                a.href = link;
+                a.download = fileName;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                setUserFeedback(`File download started: '${fileName}'`, "green");
             } else {
-                // If response not ok but no error raised
                 let json = await response.json();
-                alert(`An error occured while converting file: ${json["detail"]}`);
-                console.error(`Backend response error while converting file: ${json["detail"]}`);
+                handleError(json["detail"], "downloading file");
+                return;
             }
         } catch (error) {
-            // If error was thrown while getting backend response.
-            alert("An error occurred while converting file. Please try again.");
-            console.error(`Error during file conversion: ${error}`);
+            handleError(error, "downloading file");
+            return;
         }
-        sessionStorage.setItem("sessionID", "new");
-        sessionStorage.setItem("uploadedFormat", "");
-        sessionStorage.setItem("convertDisabled", true);
-        await updateUserProgress();
-        // download file
-        document.getElementById("download").click();
+        sessionID = "new";
+    } else if (!validFormats.includes(fileFormat)) {
+        setUserFeedback("Please select a file with a valid format.", "orange");
+    } else if (toFormat == convertSelectPlaceholder) {
+        setUserFeedback("Please select a format to convert to.", "orange");
+    }
+    document.getElementById("convert-loader").style.display = "none"; // Hide loader
+    return;
+}
+
+function handleError(error, context) {
+    /* Handles errors and gives user feedback. */
+    setUserFeedback(`An error occured while ${context}. Please try again.`, "red");
+    console.error(`An error occured while ${context}. Error: ${error}`);
+    document.getElementById("convert-loader").style.display = "none"; // Hide loader
+}
+
+function setUserFeedback(text, color) {
+    /* 
+    Sets the innerText and style.color properties of the element #user-feedback
+    If color is red or orange, then #user-feedback will be bold.
+     */
+    document.getElementById("user-feedback").innerText = text;
+    document.getElementById("user-feedback").style.color = color;
+    if (color == "red" || color == "orange") {
+        document.getElementById("user-feedback").style.fontWeight = "bold";
     } else {
-        alert("Please select a format to convert to.");
+        document.getElementById("user-feedback").style.fontWeight = "normal";
     }
 }
