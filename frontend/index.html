@@ -5,24 +5,42 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Web Media Converter</title>
     <script type="text/javascript" src="script.js"></script>
+    <link rel="stylesheet" href="styles.css">
+    <script src="https://kit.fontawesome.com/f00e7b6fed.js" crossorigin="anonymous"></script>
 </head>
 <body>
     <h1>Welcome to Web Media Converter</h1>
-    <p>Upload a file to begin:</p>
-    <form id="upload">
-        <label for="file-input">Select a file:</label><br>
-        <input type="file" id="file-input"><br>
-        <input type="button" value="Upload" onclick="uploadFile();">
-    </form>
+    <p>Convert media files to any format</p>
     <br>
-    <form id="convert" class="dependant-input" action="event.preventDefault();">
-        <label for="format-select">Select a file format to convert to:</label><br>
-        <select id="format-select" disabled></select>
-        <input type="button" value="Convert" onclick="event.preventDefault(); convertFile();" disabled>
-    </form>
-    <br>
-    <a id="download" class="dependant-input" download>
-        <!-- <input type="button" id="download-button" action="event.preventDefault();" disabled> -->
-    </a>
+    <main>
+        <form id="convert" action="event.preventDefault();">
+            <div id="file-select">
+                <input type="file" id="file-input" oninput="event.preventDefault(); updateToFormats();">
+                <br>
+                or drag and drop
+            </div>
+            <br>
+            <div id="convert-options">
+                <label for="format-select">Convert to:</label>
+                <select id="format-select">
+                    <option value="please select a file">please select a file</option>
+                </select>
+                <br>
+                <details id="advanced-options">
+                    <summary>Advanced</summary>
+                    <label for="optimise-select">Optimise: </label>
+                    <input type="checkbox" id="optimise-select">
+                    <div class="tooltip"><i class="fa-solid fa-circle-question"></i>
+                        <span class="tooltiptext">Enables lossless compression on the final file.</span>
+                    </div>
+                </details>
+            </div>
+            <button id="submit-convert" onclick="event.preventDefault(); convertFile();">
+                Convert & Download <i class="fa-solid fa-download"></i>
+            </button>
+        </form>
+        <div id="convert-loader" class="loader"></div>
+        <p id="user-feedback"></p>
+    </main>
 </body>
 </html>
