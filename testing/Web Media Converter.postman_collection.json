@@ -1,0 +1,277 @@
+{
+	"info": {
+		"_postman_id": "61db5ebd-9f0a-4163-b67f-475237969ece",
+		"name": "Web Media Converter",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "33349578"
+	},
+	"item": [
+		{
+			"name": "Upload File",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"var jsonData = JSON.parse(responseBody);\r",
+							"pm.collectionVariables.set(\"session_id\", jsonData.session_id);"
+						],
+						"type": "text/javascript",
+						"packages": {}
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "formdata",
+					"formdata": [
+						{
+							"key": "file",
+							"type": "file",
+							"src": "/C:/Users/Zbook User/Desktop/Python Projects/DIT/Assesments/3.8-complex-processes/3.8-complex-processes/testing/test-files/image/file_example_JPG_1MB.jpg"
+						}
+					]
+				},
+				"url": {
+					"raw": "http://127.0.0.1:8000/upload/?session_id=new",
+					"protocol": "http",
+					"host": [
+						"127",
+						"0",
+						"0",
+						"1"
+					],
+					"port": "8000",
+					"path": [
+						"upload",
+						""
+					],
+					"query": [
+						{
+							"key": "session_id",
+							"value": "new"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Convert File",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							""
+						],
+						"type": "text/javascript",
+						"packages": {}
+					}
+				}
+			],
+			"request": {
+				"method": "PATCH",
+				"header": [],
+				"url": {
+					"raw": "http://127.0.0.1:8000/convert/?session_id={{session_id}}&to_format=PNG",
+					"protocol": "http",
+					"host": [
+						"127",
+						"0",
+						"0",
+						"1"
+					],
+					"port": "8000",
+					"path": [
+						"convert",
+						""
+					],
+					"query": [
+						{
+							"key": "session_id",
+							"value": "{{session_id}}"
+						},
+						{
+							"key": "to_format",
+							"value": "PNG"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Download File",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "http://127.0.0.1:8000/download/?session_id={{session_id}}",
+					"protocol": "http",
+					"host": [
+						"127",
+						"0",
+						"0",
+						"1"
+					],
+					"port": "8000",
+					"path": [
+						"download",
+						""
+					],
+					"query": [
+						{
+							"key": "session_id",
+							"value": "{{session_id}}"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Supported Formats",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "http://127.0.0.1:8000/supported-formats",
+					"protocol": "http",
+					"host": [
+						"127",
+						"0",
+						"0",
+						"1"
+					],
+					"port": "8000",
+					"path": [
+						"supported-formats"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Supported Conversions",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "http://127.0.0.1:8000/supported-conversions/?format=JPG",
+					"protocol": "http",
+					"host": [
+						"127",
+						"0",
+						"0",
+						"1"
+					],
+					"port": "8000",
+					"path": [
+						"supported-conversions",
+						""
+					],
+					"query": [
+						{
+							"key": "format",
+							"value": "JPG"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Correct Format",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "http://127.0.0.1:8000/correct-format/?format=JPEG",
+					"protocol": "http",
+					"host": [
+						"127",
+						"0",
+						"0",
+						"1"
+					],
+					"port": "8000",
+					"path": [
+						"correct-format",
+						""
+					],
+					"query": [
+						{
+							"key": "format",
+							"value": "JPEG"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Is Valid Conversion",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "http://127.0.0.1:8000/is-valid-conversion/?from_format=JPEG&to_format=MP4",
+					"protocol": "http",
+					"host": [
+						"127",
+						"0",
+						"0",
+						"1"
+					],
+					"port": "8000",
+					"path": [
+						"is-valid-conversion",
+						""
+					],
+					"query": [
+						{
+							"key": "from_format",
+							"value": "JPEG"
+						},
+						{
+							"key": "to_format",
+							"value": "MP4"
+						}
+					]
+				}
+			},
+			"response": []
+		}
+	],
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"packages": {},
+				"exec": [
+					""
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"packages": {},
+				"exec": [
+					""
+				]
+			}
+		}
+	],
+	"variable": [
+		{
+			"key": "session_id",
+			"value": ""
+		}
+	]
+}

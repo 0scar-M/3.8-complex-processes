@@ -4,8 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Web Media Converter</title>
-    <script type="text/javascript" src="script.js"></script>
     <link rel="stylesheet" href="styles.css">
+    <script type="text/javascript" src="script.js"></script>
     <script src="https://kit.fontawesome.com/f00e7b6fed.js" crossorigin="anonymous"></script>
 </head>
 <body>
@@ -26,14 +26,6 @@
                     <option value="please select a file">please select a file</option>
                 </select>
                 <br>
-                <details id="advanced-options">
-                    <summary>Advanced</summary>
-                    <label for="optimise-select">Optimise: </label>
-                    <input type="checkbox" id="optimise-select">
-                    <div class="tooltip"><i class="fa-solid fa-circle-question"></i>
-                        <span class="tooltiptext">Enables lossless compression on the final file.</span>
-                    </div>
-                </details>
             </div>
             <button id="submit-convert" onclick="event.preventDefault(); convertFile();">
                 Convert & Download <i class="fa-solid fa-download"></i>

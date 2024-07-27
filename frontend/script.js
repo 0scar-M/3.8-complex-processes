@@ -19,7 +19,7 @@ async function updateToFormats() {
     // Get supported formats from backend.
     try {
         let response = await fetch(
-            `${backendURL}/supported-formats`, 
+            `${backendURL}/supported-formats/`, 
             {method: "get"}
         );
         json = await response.json();
@@ -35,14 +35,24 @@ async function updateToFormats() {
         fileFormat = document.getElementById("file-input").files[0].name.split(".")[1].toUpperCase();
     } catch {}
     
-    if (fileFormat == "JPG") {
-        fileFormat = "JPEG"; // Backend uses JPEG not JPG
+    // Correct format for possible aliases
+    try {
+        let response = await fetch(
+            `${backendURL}/correct-format/?format=${fileFormat}`, 
+            {method: "get"}
+        );
+        json = await response.json();
+        if (response.ok) {
+            fileFormat = json;
+        }
+    } catch (error) {
+        handleError(error, "checking format aliases");
     }
 
     if (fileFormat !== "" && validFormats.includes(fileFormat)) {
         try {
             let response = await fetch(
-                `${backendURL}/supported-conversions/${fileFormat}`, 
+                `${backendURL}/supported-conversions/?format=${fileFormat}`, 
                 {method: "get"}
             );
             if (response.ok) {
@@ -52,6 +62,9 @@ async function updateToFormats() {
                     formats.forEach(format => {
                         setOptions(format, false);
                     });
+                    if (formats.includes(fileFormat)) { // Set format select option to uploaded file format
+                        document.getElementById("format-select").value = fileFormat;
+                    }
                 } else {
                     handleError(json["detail"], "getting conversion formats");
                     setOptions(convertSelectPlaceholder, true);
@@ -84,21 +97,17 @@ async function convertFile() {
 
     if (file) {
         fileFormat = file.name.split(".")[1].toUpperCase();
-        if (fileFormat == "JPG") {
-            fileFormat = "JPEG"; // Backend uses JPEG not JPG
-        }
     } else {
         setUserFeedback("Please select a file to convert.", "orange");
         return;
     }
     let toFormat = document.getElementById("format-select").value;
-    let optimise = document.getElementById("optimise-select").value;
     let validFormats = [];
 
     // Get supported formats from backend.
     try {
         let response = await fetch(
-            `${backendURL}/supported-formats`, 
+            `${backendURL}/supported-formats/`, 
             {method: "get"}
         );
         json = await response.json();
@@ -136,53 +145,73 @@ async function convertFile() {
             return;
         }
 
-        // Convert file
+        // Check conversion with backend.
+        let validConversion = null;
         try {
             let response = await fetch(
-                `${backendURL}/convert/?session_id=${sessionID}&to_format=${toFormat}&optimise=${optimise}`, 
-                {method: "PATCH"}
+                `${backendURL}/is-valid-conversion/?from_format=${fileFormat}&to_format=${toFormat}`, 
+                {method: "get"}
             );
-            let json = await response.json();
-
+            json = await response.json();
             if (response.ok) {
-                setUserFeedback(`File converted successfully from: '${file.name}' to: '${json["new_file_name"]}'`, "green");
-            } else {
-                handleError(json["detail"], "downloading file");
-                return;
+                validConversion = json;
             }
         } catch (error) {
-            handleError(error, "converting file");
-            return;
+            handleError(error, "checking conversion");
         }
 
-        // Download file
-        try {
-            let response = await fetch(
-                `${backendURL}/download/?session_id=${sessionID}`, 
-                {method: "GET"}
-            );
-
-            if (response.ok) {
-                let fileName = response.headers.get("file_name");
-                let blob = await response.blob();
-                let link = window.URL.createObjectURL(blob);
-                let a = document.createElement('a');
-                a.href = link;
-                a.download = fileName;
-                document.body.appendChild(a);
-                a.click();
-                document.body.removeChild(a);
-                setUserFeedback(`File download started: '${fileName}'`, "green");
-            } else {
+        if (validConversion) {
+            // Convert file
+            try {
+                let response = await fetch(
+                    `${backendURL}/convert/?session_id=${sessionID}&to_format=${toFormat}`, 
+                    {method: "PATCH"}
+                );
                 let json = await response.json();
-                handleError(json["detail"], "downloading file");
+
+                if (response.ok) {
+                    setUserFeedback(`File converted successfully from: '${file.name}' to: '${json["new_file_name"]}'`, "green");
+                } else {
+                    handleError(json["detail"], "converting file");
+                    return;
+                }
+            } catch (error) {
+                handleError(error, "converting file");
                 return;
             }
-        } catch (error) {
-            handleError(error, "downloading file");
-            return;
+
+            // Download file
+            try {
+                let response = await fetch(
+                    `${backendURL}/download/?session_id=${sessionID}`, 
+                    {method: "GET"}
+                );
+
+                if (response.ok) {
+                    let fileName = response.headers.get("file_name");
+                    let blob = await response.blob();
+                    let link = window.URL.createObjectURL(blob);
+                    let a = document.createElement('a');
+                    a.href = link;
+                    a.download = fileName;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    setUserFeedback(`File download started: '${fileName}'`, "green");
+                } else {
+                    let json = await response.json();
+                    handleError(json["detail"], "downloading file");
+                    return;
+                }
+            } catch (error) {
+                handleError(error, "downloading file");
+                return;
+            }
+            sessionID = "new";
+        } else {
+            setUserFeedback(`Invalid conversion: ${fileFormat} to ${toFormat}. Please try again with a different format.`, "orange");
         }
-        sessionID = "new";
+        
     } else if (!validFormats.includes(fileFormat)) {
         setUserFeedback("Please select a file with a valid format.", "orange");
     } else if (toFormat == convertSelectPlaceholder) {
