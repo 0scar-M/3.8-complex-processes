@@ -20,7 +20,9 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y docker-compose
-      - name: Build and push with Docker Compose
+      - name: Build with Docker Compose
         run: |
           docker-compose -f docker-compose.yml build
-          docker-compose -f docker-compose.yml push
+      - name: Push to DockerHub repository
+        run: |
+          docker push ${{ vars.DOCKER_USERNAME }}/${{ github.event.repository.name }}:latest
