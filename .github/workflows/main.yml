@@ -20,14 +20,7 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y docker-compose
-      - name: Build with Docker Compose
+      - name: Build and push with Docker Compose
         run: |
           docker-compose -f docker-compose.yml build
-      - name: Tag Docker Images
-        run: |
-          docker.io/library/${{ github.event.repository.name }}_backend:latest ${{ vars.DOCKER_USERNAME }}/${{ github.event.repository.name }}:latest
-          docker.io/library/${{ github.event.repository.name }}_frontend:latest ${{ vars.DOCKER_USERNAME }}/${{ github.event.repository.name }}:latest
-          docker.io/library/${{ github.event.repository.name }}_database:latest ${{ vars.DOCKER_USERNAME }}/${{ github.event.repository.name }}:latest
-      - name: Push to DockerHub repository
-        run: |
-          docker push ${{ vars.DOCKER_USERNAME }}/${{ github.event.repository.name }}:latest
+          docker-compose -f docker-compose.yml push
