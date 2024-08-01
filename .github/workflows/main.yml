@@ -26,18 +26,18 @@ jobs:
         with:
           context: ./frontend
           push: true
-          tags: ${{ vars.DOCKER_USERNAME }}/frontend:latest
+          tags: ${{ vars.DOCKER_USERNAME }}/${{ github.event.repository.name }}/frontend:latest
           
       - name: Build and push backend image
         uses: docker/build-push-action@v5
         with:
           context: ./backend
           push: true
-          tags: ${{ vars.DOCKER_USERNAME }}/backend:latest
+          tags: ${{ vars.DOCKER_USERNAME }}/${{ github.event.repository.name }}/backend:latest
           
       - name: Build and push database image
         uses: docker/build-push-action@v5
         with:
           context: ./database
           push: true
-          tags: ${{ vars.DOCKER_USERNAME }}/database:latest
+          tags: ${{ vars.DOCKER_USERNAME }}/${{ github.event.repository.name }}/database:latest
