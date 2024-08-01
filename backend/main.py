@@ -10,7 +10,6 @@ import tempfile
 import uuid
 
 # Define global variables
-frontend_url = "http://localhost"
 media_formats = { # All suported formats for each media type.
     "image": ("BMP", "GIF", "JFIF", "JPG", "PNG", "RAW", "SVG", "TIF", "WEBP"), 
     "video": ("AVI", "FLV", "GIF", "MKV", "MOV", "MP4", "WMV"), 
@@ -34,7 +33,7 @@ app = FastAPI()
 # Configure CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[frontend_url],
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
