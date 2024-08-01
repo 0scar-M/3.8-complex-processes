@@ -23,6 +23,11 @@ jobs:
       - name: Build with Docker Compose
         run: |
           docker-compose -f docker-compose.yml build
+      - name: Tag Docker Images
+        run: |
+          docker tag ${{ vars.DOCKER_USERNAME }}/${{ github.event.repository.name }}-backend:latest ${{ vars.DOCKER_USERNAME }}/${{ github.event.repository.name }}:latest
+          docker tag ${{ vars.DOCKER_USERNAME }}/${{ github.event.repository.name }}-frontend:latest ${{ vars.DOCKER_USERNAME }}/${{ github.event.repository.name }}:latest
+          docker tag ${{ vars.DOCKER_USERNAME }}/${{ github.event.repository.name }}-database:latest ${{ vars.DOCKER_USERNAME }}/${{ github.event.repository.name }}:latest
       - name: Push to DockerHub repository
         run: |
-          docker push ${{ vars.DOCKER_USERNAME }}/${{ github.event.repository.name }}
+          docker push ${{ vars.DOCKER_USERNAME }}/${{ github.event.repository.name }}:latest
