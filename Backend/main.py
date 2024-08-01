@@ -9,23 +9,8 @@ import time
 import tempfile
 import uuid
 
-# Configure FastAPI app
-app = FastAPI()
-
-# Configure CORS middleware
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=[
-        "http://127.0.0.1:5500",
-        "http://localhost:5500"
-    ],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-    expose_headers=["*"]
-)
-
 # Define global variables
+frontend_url = "http://localhost"
 media_formats = { # All suported formats for each media type.
     "image": ("BMP", "GIF", "JFIF", "JPG", "PNG", "RAW", "SVG", "TIF", "WEBP"), 
     "video": ("AVI", "FLV", "GIF", "MKV", "MOV", "MP4", "WMV"), 
@@ -40,8 +25,21 @@ format_aliases = { # Some formats have multiple names, this provides a way to co
     "AAC": ("M4A"), 
     "OGG": ("OGA")
 }
-valid_formats = [x for y in media_formats.values() for x in y] # set valid_formats to list of all valid formats
+valid_formats = [x for y in media_formats.values() for x in y] # Set valid_formats to list of all valid formats
 invalid_conversions = [(x, "SVG") for x in media_formats["image"] if x != "SVG"] # Cannot convert raster to SVG
+
+# Configure FastAPI app
+app = FastAPI()
+
+# Configure CORS middleware
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[frontend_url],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+    expose_headers=["*"]
+)
 
 
 class DB:
@@ -50,7 +48,8 @@ class DB:
     def __init__(self):
         "Opens database connection."
         self.timeout_secs = 600 # 10 mins
-        self.path = os.path.join(os.path.dirname(os.path.dirname(__file__)), r"database/web_media_converter.db")
+        self.path = os.getenv("DATABASE_PATH") # get database path from environment variable. See docker-compose.yml
+        # when running on local machine: self.path = r"../database/database.db"
         self.conn = sql.connect(self.path, check_same_thread=False)
         self.cursor = self.conn.cursor()
     

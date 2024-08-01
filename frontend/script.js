@@ -1,4 +1,4 @@
-const backendURL = "http://127.0.0.1:8000";
+const backendURL = "http://localhost:5000";
 const convertSelectPlaceholder = "please select a file";
 let sessionID = "new";
 
