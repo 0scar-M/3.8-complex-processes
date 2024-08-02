@@ -42,10 +42,7 @@ jobs:
           push: true
           tags: ${{ vars.DOCKER_USERNAME }}/${{ github.event.repository.name }}:database
           
-  restart-droplet:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Install sshpass
+      - name: Install sshpass for droplet
         run: sudo apt-get update && sudo apt-get install -y sshpass
       
       - name: Restart app on droplet
