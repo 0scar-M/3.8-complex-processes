@@ -41,3 +41,9 @@ jobs:
           context: ./database
           push: true
           tags: ${{ vars.DOCKER_USERNAME }}/${{ github.event.repository.name }}:database
+          
+  restart_droplet:
+    runs_on: ubuntu-latest
+    steps:
+      - name: Restart Digital Ocean Droplet
+        command: ["echo", "Hi"]
