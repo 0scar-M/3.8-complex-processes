@@ -45,5 +45,15 @@ jobs:
   restart_droplet:
     runs_on: ubuntu-latest
     steps:
-      - name: Restart Digital Ocean Droplet
-        command: ["echo", "Hi"]
+      - name: Install doctl
+        uses: digitalocean/action-doctl@v2
+        with:
+          token: ${{ secrets.DIGITALOCEAN_ACCESS_TOKEN }}
+      - name: Go to app dir
+        run: doctl cd /home/app
+      - name: Shutdown app
+        run: doctl docker compose down
+      - name: Pull containers from DockerHub
+        run: doctl docker compose pull
+      - name: Restart app
+        run: doctl docker compose up -d
