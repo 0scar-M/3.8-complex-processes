@@ -4,6 +4,8 @@ services:
       context: ./frontend
     ports:
       - "80:80"
+    depends_on:
+      - backend
 
   backend:
     build:
