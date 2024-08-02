@@ -2,8 +2,6 @@
 
 ## docker-compose.yml for running application
 ```yml
-version: '3.8'
-
 services:
   frontend:
     image: 21omccartney/3.8—comp1ex—processes:frontend
@@ -18,6 +16,7 @@ services:
       - "5000:5000"
     environment:
       - DATABASE_PATH=/data/database.db
+      - HOST_NAME=170.64.162.244
     depends_on:
       - database
   
