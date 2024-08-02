@@ -1,3 +1,4 @@
+from dotenv import load_dotenv
 from fastapi import FastAPI, File, UploadFile, Query, HTTPException, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import Response
@@ -9,9 +10,11 @@ import time
 import tempfile
 import uuid
 
+# Load environment variables
+load_dotenv()
+
 # Define global variables
 frontend_url = f"http://{os.getenv("HOST_NAME")}"
-print(frontend_url)
 media_formats = { # All suported formats for each media type.
     "image": ("BMP", "GIF", "JFIF", "JPG", "PNG", "RAW", "SVG", "TIF", "WEBP"), 
     "video": ("AVI", "FLV", "GIF", "MKV", "MOV", "MP4", "WMV"), 
