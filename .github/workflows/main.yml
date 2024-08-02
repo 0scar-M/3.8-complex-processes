@@ -35,21 +35,4 @@ jobs:
           push: true
           tags: ${{ vars.DOCKER_USERNAME }}/${{ github.event.repository.name }}:backend
           
-      - name: Build and push database image
-        uses: docker/build-push-action@v5
-        with:
-          context: ./database
-          push: true
-          tags: ${{ vars.DOCKER_USERNAME }}/${{ github.event.repository.name }}:database
-          
-      - name: Install sshpass for droplet
-        run: sudo apt-get update && sudo apt-get install -y sshpass
-      
-      - name: Trigger watchtower container restart
-        run: |
-          sshpass -p "${{ secrets.DIGITALOCEAN_SSH_PASSWORD }}" ssh -o StrictHostKeyChecking=no oscar@170.64.162.244 "
-          cd /home/app/watchtower &&
-          docker compose down &&
-          docker-compose run watchtower &&
-          docker compose up -d
-          "
+      - nam
