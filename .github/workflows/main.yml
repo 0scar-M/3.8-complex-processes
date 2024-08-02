@@ -42,8 +42,8 @@ jobs:
           push: true
           tags: ${{ vars.DOCKER_USERNAME }}/${{ github.event.repository.name }}:database
           
-  restart_droplet:
-    runs_on: ubuntu-latest
+  restart-droplet:
+    runs-on: ubuntu-latest
     steps:
       - name: Install doctl
         uses: digitalocean/action-doctl@v2
