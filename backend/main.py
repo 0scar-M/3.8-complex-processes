@@ -11,6 +11,7 @@ import uuid
 
 # Define global variables
 frontend_url = f"http://{os.getenv("HOST_NAME")}"
+print(frontend_url)
 media_formats = { # All suported formats for each media type.
     "image": ("BMP", "GIF", "JFIF", "JPG", "PNG", "RAW", "SVG", "TIF", "WEBP"), 
     "video": ("AVI", "FLV", "GIF", "MKV", "MOV", "MP4", "WMV"), 
