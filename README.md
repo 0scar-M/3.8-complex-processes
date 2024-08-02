@@ -7,6 +7,8 @@ services:
     image: 21omccartney/3.8—comp1ex—processes:frontend
     ports:
       - "80:80"
+    depends_on:
+      - backend
 
   backend:
     image: 21omccartney/3.8—comp1ex—processes:backend
