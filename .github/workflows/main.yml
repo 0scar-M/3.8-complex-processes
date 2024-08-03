@@ -42,12 +42,19 @@ jobs:
           push: true
           tags: ${{ vars.DOCKER_USERNAME }}/${{ github.event.repository.name }}:database
 
-      - name: Install sshpass for droplet
-        run: sudo apt-get update && sudo apt-get install -y sshpass
+      - name: Install SSH Client
+        run: sudo apt-get update && sudo apt-get install -y openssh-client
 
-      - name: Update and restart app in droplet
+      - name: Set up SSH key
         run: |
-          sshpass -p "${{ secrets.DIGITALOCEAN_SSH_PASSWORD }}" ssh -o StrictHostKeyChecking=no oscar@170.64.162.244 "
+          mkdir -p ~/.ssh
+          echo "${{ secrets.DROPLET_SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan -H 170.64.162.244 >> ~/.ssh/known_hosts
+
+      - name: Deploy app to droplet
+        run: |
+          ssh -o StrictHostKeyChecking=no user@170.64.162.244 "
           cd /home/app &&
           docker compose down &&
           docker compose pull &&
