@@ -2,6 +2,31 @@ const backendURL = `http://${window.location.hostname}:5000`;
 const convertSelectPlaceholder = "please select a file";
 let sessionID = "new";
 
+window.onload = async function() {
+    // Get supported formats
+    let validFormats = [];
+    try {
+        let response = await fetch(
+            `${backendURL}/supported-formats/`, 
+            {method: "get"}
+        );
+        json = await response.json();
+        if (response.ok && json.constructor.name == "Array") {
+            validFormats = json;
+        }
+    } catch (error) {
+        handleError(error, "getting supported formats");
+    }
+
+    // Set supported formats list in about section
+    document.getElementById("supported-formats-list").innerHTML = "";
+    validFormats.forEach(format => {
+        let listItem = document.createElement("li");
+        listItem.innerText = format;
+        document.getElementById("supported-formats-list").appendChild(listItem);
+    });
+}
+
 async function updateToFormats() {
     /* Updates the options of the format-select element. */
 
@@ -15,19 +40,6 @@ async function updateToFormats() {
             option.innerHTML = value;
             document.getElementById("format-select").appendChild(option);
         }
-    }
-    // Get supported formats from backend.
-    try {
-        let response = await fetch(
-            `${backendURL}/supported-formats/`, 
-            {method: "get"}
-        );
-        json = await response.json();
-        if (response.ok && json.constructor.name == "Array") {
-            validFormats = json;
-        }
-    } catch (error) {
-        handleError(error, "getting supported formats");
     }
 
     let fileFormat = "";
@@ -102,21 +114,6 @@ async function convertFile() {
         return;
     }
     let toFormat = document.getElementById("format-select").value;
-    let validFormats = [];
-
-    // Get supported formats from backend.
-    try {
-        let response = await fetch(
-            `${backendURL}/supported-formats/`, 
-            {method: "get"}
-        );
-        json = await response.json();
-        if (response.ok && json.constructor.name == "Array") {
-            validFormats = json;
-        }
-    } catch (error) {
-        handleError(error, "getting supported formats");
-    }
     
     if (validFormats.includes(fileFormat) && toFormat !== convertSelectPlaceholder) {
         document.getElementById("convert-loader").style.display = "block"; // Show loader
