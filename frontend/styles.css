@@ -92,8 +92,18 @@ input[type="file"]::file-selector-button {
     display: none;
 }
 
+/* Center bullet point as well as list item. */
+ul {
+    list-style-position: inside;
+}
+
+#about {
+    margin-left: 10%;
+    margin-right: 10%;
+}
+
 @media only screen and (min-width: 900px) {
-    #file-select {
+    #about, #file-select {
         margin-left: 30%;
         margin-right: 30%;
     }
