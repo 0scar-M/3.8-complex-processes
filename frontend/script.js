@@ -1,10 +1,30 @@
 const backendURL = `http://${window.location.hostname}:5000`;
 const convertSelectPlaceholder = "please select a file";
+const darkModeStylesHref = "dark-styles.css";
 let sessionID = "new";
+let validFormats = [];
+let darkmode = false;
+
+document.getElementById("theme-toggle").addEventListener("click", function() {
+    setDarkMode(!darkmode)
+});
+
+document.getElementById("file-select").addEventListener("click", function() {
+    // Propogates click event from the light grey box #file-select to the #file-input button.
+    document.getElementById("file-input").click();
+});
 
 window.onload = async function() {
+    // Set darkmode based on user preference or cookie
+    darkmodeCookie = document.cookie.split(";").find(row => row.startsWith("darkmode="))?.split("=")[1] || null; // Extract cookie
+    if (darkmodeCookie !== null) {
+        darkmodeCookie = (darkmodeCookie === "true");
+        setDarkMode(darkmodeCookie);
+    } else {
+        setDarkMode(window.matchMedia("(prefers-color-scheme: dark)").matches);
+    }
+
     // Get supported formats
-    let validFormats = [];
     try {
         let response = await fetch(
             `${backendURL}/supported-formats/`, 
@@ -27,11 +47,27 @@ window.onload = async function() {
     });
 }
 
+function setDarkMode(darkMode) {
+    // Sets darkmode by toggling dark-styles.css stylesheet.
+    if (darkMode) {
+        darkmode = true;
+        document.getElementById("dark-styles").href = darkModeStylesHref;
+        document.getElementById("theme-icon-light").style.display = "block";
+        document.getElementById("theme-icon-dark").style.display = "none";
+    } else {
+        darkmode = false;
+        document.getElementById("dark-styles").href = "";
+        document.getElementById("theme-icon-light").style.display = "none";
+        document.getElementById("theme-icon-dark").style.display = "block";
+    }
+    document.cookie = `darkmode=${darkmode};}`; // Set cookie
+}
+
 async function updateToFormats() {
-    /* Updates the options of the format-select element. */
+    // Updates the options of the format-select element.
 
     function setOptions(value, clear) {
-        /* Adds option to the #format-select select. */
+        // Adds option to the #format-select select.
         if (clear) {
             document.getElementById("format-select").innerHTML = "";
         } else {
@@ -219,7 +255,7 @@ async function convertFile() {
 }
 
 function handleError(error, context) {
-    /* Handles errors and gives user feedback. */
+    // Handles errors and gives user feedback.
     setUserFeedback(`An error occured while ${context}. Please try again.`, "red");
     console.error(`An error occured while ${context}. Error: ${error}`);
     document.getElementById("convert-loader").style.display = "none"; // Hide loader

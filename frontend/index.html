@@ -4,14 +4,24 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Web Media Converter</title>
+    <link rel="icon" type="image/x-icon" href="favicon.ico">
     <link rel="stylesheet" href="styles.css">
-    <script type="text/javascript" src="script.js"></script>
+    <link id="dark-styles" rel="stylesheet" href="">
+    <script type="text/javascript" src="script.js" defer></script>
     <script src="https://kit.fontawesome.com/f00e7b6fed.js" crossorigin="anonymous"></script>
 </head>
 <body>
-    <h1>Welcome to Web Media Converter</h1>
-    <p>Convert media files to any format</p>
-    <br>
+    <nav id="navbar">
+        <a href="" id="site-home">
+            <img src="favicon.ico" alt="Site Icon">
+            <h1>Web Media Converter</h1>
+        </a>
+        <div id="theme-toggle">
+            <i id="theme-icon-light" class="fa-solid fa-sun theme-icon"></i>
+            <i id="theme-icon-dark" class="fa-solid fa-moon theme-icon"></i>
+        </div>
+    </nav>
+    <p>Convert media files to any format here:</p>
     <main>
         <form id="convert" action="event.preventDefault();">
             <div id="file-select">
@@ -34,9 +44,9 @@
         <div id="convert-loader" class="loader"></div>
         <p id="user-feedback"></p>
         
-        <br>
+        <br><br>
         <section id="about">
-            <h1>About:</h1>
+            <h2>About:</h2>
             <p>
                 Web Media Converter converts media files like image, video or audio files into other formats of the same media type (eg. JPG to PNG). It currently supports the following file formats:
             </p>
@@ -46,6 +56,12 @@
                 SVG to any other image format
             </p>
         </section>
+
+        <br><br><br>
+        <footer>
+            <p>© Oscar McCartney 2024</p>
+        </footer>
+        <br>
     </main>
 </body>
 </html>
