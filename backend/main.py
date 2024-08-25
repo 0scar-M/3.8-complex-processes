@@ -1,14 +1,16 @@
 from dotenv import load_dotenv
 from fastapi import FastAPI, File, UploadFile, Query, HTTPException, Depends
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import Response
+from fastapi.responses import StreamingResponse
 import io
 import os
 import sqlite3 as sql
 import subprocess
 import time
 import tempfile
+from typing import List
 import uuid
+import zipfile
 
 # Load environment variables
 load_dotenv()
@@ -143,7 +145,7 @@ def get_db():
         db.close()
 
 @app.post("/upload/")
-async def upload_file(session_id: str = Query(...), file: UploadFile = File(...), db: DB = Depends(get_db)):
+async def upload_file(session_id: str = Query(...), files: List[UploadFile] = [File(...)], db: DB = Depends(get_db)):
     """
     Adds entry to files table.
     If session_id = new, then a new uuid will be returned and a new entry will be created in the sessions table for the file.
@@ -151,29 +153,35 @@ async def upload_file(session_id: str = Query(...), file: UploadFile = File(...)
     """
     if session_id == "new":
         session_id = str(uuid.uuid4())
-        new_session_id = True
-    else: new_session_id = False
+        new_session = True
+    else: new_session = False
 
-    file_name = file.filename
-    file_format = correct_format(file.filename.split(".")[-1].upper())
-    file_contents = await file.read()
-    file_id = file.filename+"|"+session_id
+    uploaded_files_json = []
     session_ids = [x[0] for x in db.query("SELECT session_id FROM files;", "getting list of session_ids from database")] # list of tuples of strings -> list of strings
-    
-    if file_format not in valid_formats:
-        raise HTTPException(status_code=400, detail=f"Invalid file format '{file_format}'")
-    
-    if new_session_id:
-        db.query("INSERT INTO sessions VALUES (?, ?);", "inserting session data into database", session_id, time.time())
-        db.query("INSERT INTO files VALUES (?, ?, ?, ?, ?, 0);", "inserting file data into database", file_id, session_id, file_name, file_format, file_contents)
+
+    if new_session:
+        db.query("INSERT INTO sessions VALUES (?, ?);", "inserting session data into database", session_id, time.time()) # Insert session data
     elif session_id in session_ids:
-        db.query("UPDATE files SET file_id=?, session_id=?, name=?, format=?, contents=? WHERE session_id=?;", "updating file data in database", file_id, session_id, file_name, file_format, file_contents, session_id)
-        db.query("UPDATE sessions SET last_changed_at=? WHERE session_id=?;", "updating session data in database", time.time(), session_id)
+        db.query("UPDATE sessions SET last_changed_at=? WHERE session_id=?;", "updating session data in database", time.time(), session_id) # Update session data
+        db.query("DELETE FROM files WHERE session_id=?;", "removing old files from database", session_id) # Remove old files
     else:
         raise HTTPException(status_code=404, detail=f"Invalid session_id value '{session_id}'")
+
+    for file in files:
+        file_name = file.filename
+        file_format = correct_format(file.filename.split(".")[-1].upper())
+        file_contents = await file.read()
+        file_id = file.filename+"|"+session_id
+        uploaded_files_json.append({"file_name": file_name, "file_id": file_id})
+
+        if file_format not in valid_formats:
+            raise HTTPException(status_code=400, detail=f"Invalid file format '{file_format}'")
+        
+        # Upload files to db
+        db.query("INSERT INTO files VALUES (?, ?, ?, ?, ?, 0);", "inserting file data into database", file_id, session_id, file_name, file_format, file_contents)
     
     return {
-        "file_name": file_name, 
+        "uploaded_files": uploaded_files_json, 
         "session_id": session_id
     }
 
@@ -181,52 +189,51 @@ async def upload_file(session_id: str = Query(...), file: UploadFile = File(...)
 async def convert_file(session_id: str = Query(...), to_format: str = Query(...), db: DB = Depends(get_db)):
     "Converts file in database to desired format."
 
-    # Get file to convert contents and other data from db, and validate session_id
-    file_response = db.query("SELECT contents, format, file_id, name, converted FROM files WHERE session_id=?", "getting file from database", session_id)
-    if file_response:
-        file_response = file_response[0]
-        if file_response[4] == 1:
-            raise HTTPException(status_code=404, detail=f"File already converted for session_id: '{session_id}'")
-    else:
-        raise HTTPException(status_code=404, detail=f"File not found for session_id: '{session_id}'")
-    
     # Validate to_format
     to_format = correct_format(to_format)
     if to_format not in valid_formats:
         raise HTTPException(status_code=404, detail=f"Invalid to_format: {to_format}")
 
-    conversion = (file_response[1], to_format)
-    file_id = file_response[2]
-    file_name = file_response[3]
-    new_file_name = file_name.split(".")[0]+"."+(conversion[1].lower())
+    # Get file to convert contents and other data from db, and validate session_id
+    files = db.query("SELECT file_id, name, format, contents FROM files WHERE session_id=? AND converted=0", "getting file from database", session_id)
+    if not files:
+        raise HTTPException(status_code=404, detail=f"File not found for session_id: '{session_id}'")
 
-    if is_valid_conversion(conversion):
-        input_io = io.BytesIO(file_response[0])
-        output_io = io.BytesIO()
+    converted_files_json = []
 
-        # Create temporary files for the conversion input and output
-        with tempfile.NamedTemporaryFile(delete=False, suffix=f".{conversion[0].lower()}") as input_temp:
-            input_temp.write(input_io.getvalue())
-            input_temp.flush()
-            input_temp_name = input_temp.name
-        
-        with tempfile.NamedTemporaryFile(delete=False, suffix=f".{conversion[1].lower()}") as output_temp:
-            output_temp_name = output_temp.name
+    for f in files:
+        file_id = f[0]
+        name = f[1]
+        new_name = name.split(".")[0]+"."+(to_format.lower())
+        conversion = (f[2], to_format)
+        contents = f[3]
+        converted_files_json.append({"file_name": new_name, "file_id": file_id})
+
+        if is_valid_conversion(conversion):
+            input_io = io.BytesIO(contents)
+            output_io = io.BytesIO()
+
+            # Create temporary files for the conversion input and output
+            with tempfile.NamedTemporaryFile(delete=False, suffix=f".{conversion[0].lower()}") as input_temp:
+                input_temp.write(input_io.getvalue())
+                input_temp.flush()
+                input_temp_name = input_temp.name
+            
+            with tempfile.NamedTemporaryFile(delete=False, suffix=f".{conversion[1].lower()}") as output_temp:
+                output_temp_name = output_temp.name
+        else:
+            raise HTTPException(status_code=400, detail=f"Invalid file conversion '{' to '.join(conversion)}'")
 
         try:
             # Construct the command
-            command = [
-                "ffmpeg", "-nostdin", "-y",
-                "-i", input_temp_name,
-                output_temp_name
-            ]
+            command = ["ffmpeg", "-nostdin", "-y", "-i", input_temp_name, output_temp_name]
 
             # Run the ffmpeg process
             process = subprocess.run(
                 command,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
-                timeout=30  # Timeout after 30 seconds
+                timeout=60  # Timeout after 60 seconds
             )
         except subprocess.TimeoutExpired:
             raise_error("FFMPEG process timed out", "converting file")
@@ -237,22 +244,22 @@ async def convert_file(session_id: str = Query(...), to_format: str = Query(...)
         if process.returncode != 0:
             raise_error(f"FFMPEG error: {process.stderr.decode()}", "converting file")
         else:
-            # Read the output file from the temporary file into a BytesIO object
+            # Read the output files from the temporary files into BytesIO objects
             with open(output_temp_name, 'rb') as output_temp:
                 output_io = io.BytesIO(output_temp.read())
-                output_io.name = new_file_name
-                # Update db
-                db.query("UPDATE files SET name=?, contents=?, format=?, converted=1 WHERE file_id=?", "converting file in database", new_file_name, output_io.getvalue(), conversion[1], file_id)
-                db.query("UPDATE sessions SET last_changed_at=? WHERE session_id=?", "updating session data in database", time.time(), session_id)
-        
-        # Clean up temporary files
-        os.remove(input_temp_name)
-        os.remove(output_temp_name)
-    else:
-        raise HTTPException(status_code=400, detail=f"Invalid file conversion '{' to '.join(conversion)}'")
+                output_io.name = new_name
+                # Upload converted files into db
+                db.query("UPDATE files SET name=?, contents=?, format=?, converted=1 WHERE file_id=?", "converting file in database", new_name, output_io.getvalue(), conversion[1], file_id)
+            
+            # Clean up temporary files
+            os.remove(input_temp_name)
+            os.remove(output_temp_name)
     
+    db.query("UPDATE sessions SET last_changed_at=? WHERE session_id=?", "updating session data in database", time.time(), session_id)
+
     return {
-        "new_file_name": new_file_name
+        "converted_files": converted_files_json, 
+        "session_id": session_id
     }
 
 @app.get("/download/")
@@ -260,20 +267,25 @@ async def download_file(session_id: str = Query(...), db: DB = Depends(get_db)):
     "Returns all files for a given session_id."
 
     # Get file contents and other data from db
-    response = db.query("SELECT name, contents, format FROM files WHERE session_id=?", "getting file from database", session_id)
-    if response:
-        response = response[0]
-    else:
+    files = db.query("SELECT name, contents FROM files WHERE session_id=? AND converted=1", "getting files from database", session_id)
+    if not files:
         raise HTTPException(status_code=404, detail=f"File not found for session_id: '{session_id}'")
-    
-    file_name = response[0]
-    file_contents = response[1]
-    file_media_type = f"{get_media_type(response[2])}/{response[2]}".lower()
+    files = [[name, io.BytesIO(contents)] for name, contents in files]
 
-    return Response(
-        content=file_contents, 
-        media_type=file_media_type, 
-        headers={"file_name": file_name}
+    zip_output = io.BytesIO()
+    
+    # Create a zip file in the zip_output BytesIO and add files to it
+    with zipfile.ZipFile(zip_output, "w") as zip_file:
+        # Add each file to the zip archive
+        for name, contents in files:
+            zip_file.writestr(name, contents.getvalue())
+    
+    zip_output.seek(0) # Reset pointer of BytesIO object to beginning
+
+    return StreamingResponse(
+        zip_output, 
+        media_type="application/x-zip-compressed", 
+        headers={"Content-Disposition": "attachment; filename=web-media-converter-converted-files.zip"}
     )
 
 @app.get("/supported-formats/")
