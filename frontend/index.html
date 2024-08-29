@@ -25,16 +25,15 @@
     <main>
         <form id="convert" action="event.preventDefault();">
             <div id="file-select">
-                <!-- <input type="file" id="file-input" oninput="event.preventDefault(); updateToFormats();"> -->
                 <input type="file" webkitdirectory directory multiple id="file-input" oninput="updateToFormats();"/>
                 <br>
-                or drag and drop
+                (choose a folder of files to convert)
             </div>
             <br>
             <div id="convert-options">
                 <label for="format-select">Convert to:</label>
                 <select id="format-select">
-                    <option value="please select a file">please select a file</option>
+                    <option value="please select something to convert">please select something to convert</option>
                 </select>
                 <br>
             </div>
