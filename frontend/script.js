@@ -2,16 +2,13 @@ const backendURL = `http://${window.location.hostname}:5000`;
 const convertSelectPlaceholder = "please select a file";
 const darkModeStylesHref = "dark-styles.css";
 let sessionID = "new";
-let validFormats = [];
 let darkmode = false;
+let files = null;
+let formats = null; // Formats of uploaded files
+let toFormatOptions = null; // Possible formats to convert to
 
 document.getElementById("theme-toggle").addEventListener("click", function() {
-    setDarkMode(!darkmode)
-});
-
-document.getElementById("file-select").addEventListener("click", function() {
-    // Propogates click event from the light grey box #file-select to the #file-input button.
-    document.getElementById("file-input").click();
+    setDarkMode(!darkmode);
 });
 
 window.onload = async function() {
@@ -25,26 +22,43 @@ window.onload = async function() {
     }
 
     // Get supported formats
+    let supportedFormats = [];
     try {
         let response = await fetch(
             `${backendURL}/supported-formats/`, 
             {method: "get"}
         );
-        json = await response.json();
-        if (response.ok && json.constructor.name == "Array") {
-            validFormats = json;
-        }
+        supportedFormats = await response.json();
     } catch (error) {
         handleError(error, "getting supported formats");
     }
 
-    // Set supported formats list in about section
-    document.getElementById("supported-formats-list").innerHTML = "";
-    validFormats.forEach(format => {
-        let listItem = document.createElement("li");
-        listItem.innerText = format;
-        document.getElementById("supported-formats-list").appendChild(listItem);
-    });
+    // Remove placeholder
+    document.getElementById("supported-formats-placeholder").remove();
+
+    // Get longest column (number of rows to add)
+    let maxLength = 0;
+    for (const mediaTypeFormats of Object.values(supportedFormats)) {
+        if (mediaTypeFormats.length > maxLength) {
+            maxLength = mediaTypeFormats.length;
+        }
+    }
+
+    // Add rows to table
+    for (let id =0; id < maxLength; ++id) {
+        let tr = document.createElement("tr");
+        tr.id = `tr${id}`;
+        document.getElementById("supported-formats-table").appendChild(tr);
+    }
+
+    // Add formats to supported-formats table
+    for (const mediaFormats of Object.values(supportedFormats)) {
+        for (let index=0; index < mediaFormats.length; ++index) {
+            let td = document.createElement("td");
+            td.innerText = mediaFormats[index];
+            document.getElementById(`tr${index}`).appendChild(td);
+        }
+    }
 }
 
 function setDarkMode(darkMode) {
@@ -60,76 +74,95 @@ function setDarkMode(darkMode) {
         document.getElementById("theme-icon-light").style.display = "none";
         document.getElementById("theme-icon-dark").style.display = "block";
     }
-    document.cookie = `darkmode=${darkmode};}`; // Set cookie
+    document.cookie = `darkmode=${darkmode};`; // Set cookie
 }
 
 async function updateToFormats() {
     // Updates the options of the format-select element.
 
     function setOptions(value, clear) {
-        // Adds option to the #format-select select.
+        // Adds option to the #format-select select. If clear is true, then the options will be cleared before adding value.
         if (clear) {
             document.getElementById("format-select").innerHTML = "";
-        } else {
-            let option = document.createElement("option");
-            option.value = value;
-            option.innerHTML = value;
-            document.getElementById("format-select").appendChild(option);
         }
+        let option = document.createElement("option");
+        option.value = value;
+        option.innerHTML = value;
+        document.getElementById("format-select").appendChild(option);
     }
 
-    let fileFormat = "";
-    try {
-        fileFormat = document.getElementById("file-input").files[0].name.split(".")[1].toUpperCase();
-    } catch {}
-    
-    // Correct format for possible aliases
-    try {
-        let response = await fetch(
-            `${backendURL}/correct-format/?format=${fileFormat}`, 
-            {method: "get"}
-        );
-        json = await response.json();
-        if (response.ok) {
-            fileFormat = json;
-        }
-    } catch (error) {
-        handleError(error, "checking format aliases");
+    let files = document.getElementById("file-input").files;
+    // Check if no files have been selected.
+    if (Array.from(files).length == 0) {
+        setOptions(convertSelectPlaceholder, true);
+        return;
     }
 
-    if (fileFormat !== "" && validFormats.includes(fileFormat)) {
+    // Get formats list
+    formats = [];
+    toFormatOptions = [];
+    for (const file of Array.from(files)) {
+        let format = file.name.split(".")[1].toUpperCase();
+        formats.push(format);
         try {
             let response = await fetch(
-                `${backendURL}/supported-conversions/?format=${fileFormat}`, 
+                `${backendURL}/supported-conversions/?format=${format}`, 
                 {method: "get"}
             );
+            let json = await response.json();
             if (response.ok) {
-                let formats = await response.json();
-                if (Array.isArray(formats)) {
-                    document.getElementById("format-select").innerHTML = "";
-                    formats.forEach(format => {
-                        setOptions(format, false);
-                    });
-                    if (formats.includes(fileFormat)) { // Set format select option to uploaded file format
-                        document.getElementById("format-select").value = fileFormat;
-                    }
-                } else {
-                    handleError(json["detail"], "getting conversion formats");
-                    setOptions(convertSelectPlaceholder, true);
-                }
+                toFormatOptions.push(json);
             } else {
-                handleError(json["detail"], "getting conversion formats");
+                // Clear variables so that files can't be converted
+                files = null;
+                formats = null;
+                toFormatOptions = null;
+                setUserFeedback("Please select files with valid formats.", "orange");
                 setOptions(convertSelectPlaceholder, true);
+                return;
             }
         } catch (error) {
-            handleError(error, "getting conversion formats")
+            // Clear variables so that files can't be converted
+            files = null;
+            formats = null;
+            toFormatOptions = null;
             setOptions(convertSelectPlaceholder, true);
+            handleError(error, "getting valid conversion options");
+            return;
         }
-        setUserFeedback("", "black");
-    } else if (!validFormats.includes(fileFormat)) {
-        setUserFeedback("Please select a file with a valid format.", "orange");
-        setOptions(convertSelectPlaceholder, true);
+    }
+
+    // Filter for formats that all files can be converted to.
+    let common = [];
+    for (const options of toFormatOptions) {
+        for (const format of options) {
+            let isCommon = true;
+            for (const options2 of toFormatOptions) {
+                if (!options2.includes(format)) {
+                isCommon = false;
+                break; // No need to check other lists
+                }
+            }
+            if (isCommon && !common.includes(format)) {
+                common.push(format); // Add format to common if it is found in all lists and isn't already in common
+            }
+        }
+    }
+    toFormatOptions = common;
+
+    // Set options
+    if (toFormatOptions.length !== 0) {
+        document.getElementById("format-select").innerHTML = "";
+        for (const format of toFormatOptions) {
+            setOptions(format, false);
+        }
+        setUserFeedback("", "black"); // Clear user feedback
     } else {
+        // Clear variables so that files can't be converted
+        files = null;
+        formats = null;
+        toFormatOptions = null;
+        setUserFeedback("Please select files that can be converted to a shared format.", "orange");
         setOptions(convertSelectPlaceholder, true);
     }
 }
@@ -140,124 +173,139 @@ async function convertFile() {
     Called by the submission of the #convert form.
     */
 
-    let file = document.getElementById("file-input").files[0];
-    let fileFormat = "";
+    let toFormat = document.getElementById("format-select").value;
+    files = document.getElementById("file-input").files;
 
-    if (file) {
-        fileFormat = file.name.split(".")[1].toUpperCase();
-    } else {
+    // Check a file has been selected
+    if (files == null || files.length == 0 || formats == null) {
         setUserFeedback("Please select a file to convert.", "orange");
         return;
     }
-    let toFormat = document.getElementById("format-select").value;
-    
-    if (validFormats.includes(fileFormat) && toFormat !== convertSelectPlaceholder) {
-        document.getElementById("convert-loader").style.display = "block"; // Show loader
+    // Check all files can be converted to a shared format
+    if (toFormatOptions == null) {
+        setUserFeedback("Please select files that can be converted to a shared format.", "orange");
+        return;
+    }
+    // Check toFormat is valid
+    if (!toFormatOptions.includes(toFormat)) {
+        setUserFeedback("Please select a valid format to convert to.", "orange");
+        return;
+    }
 
-        // Upload file
-        try {
-            let formData = new FormData();
-            formData.append("file", file);
-
-            let response = await fetch(
-                `${backendURL}/upload/?session_id=${sessionID}`, 
-                {method: "POST", 
-                body: formData}
-            );
-            let json = await response.json();
-
-            if (response.ok) {
-                sessionID = json["session_id"];
-                setUserFeedback("File uploaded successfully.", "black");
-            } else {
-                handleError(json["detail"], "uploading file");
-                return;
-            }
-        } catch (error) {
-            handleError(error, "uploading file");
-            return;
-        }
-
-        // Check conversion with backend.
-        let validConversion = null;
+    // Check conversions with backend.
+    for (const format of formats) {
         try {
             let response = await fetch(
-                `${backendURL}/is-valid-conversion/?from_format=${fileFormat}&to_format=${toFormat}`, 
+                `${backendURL}/is-valid-conversion/?from_format=${format}&to_format=${toFormat}`, 
                 {method: "get"}
             );
             json = await response.json();
             if (response.ok) {
-                validConversion = json;
+                if (!json) {
+                    setUserFeedback(`File format ${format} cannot be converted to ${toFormat}`, "orange");
+                    return;
+                }
+            } else {
+                handleError(json["detail"], "checking conversions");
             }
         } catch (error) {
-            handleError(error, "checking conversion");
+            handleError(error, "checking conversions");
         }
-
-        if (validConversion) {
-            // Convert file
-            try {
-                let response = await fetch(
-                    `${backendURL}/convert/?session_id=${sessionID}&to_format=${toFormat}`, 
-                    {method: "PATCH"}
-                );
-                let json = await response.json();
-
-                if (response.ok) {
-                    setUserFeedback(`File converted successfully from: '${file.name}' to: '${json["new_file_name"]}'`, "green");
-                } else {
-                    handleError(json["detail"], "converting file");
-                    return;
-                }
-            } catch (error) {
-                handleError(error, "converting file");
-                return;
-            }
-
-            // Download file
-            try {
-                let response = await fetch(
-                    `${backendURL}/download/?session_id=${sessionID}`, 
-                    {method: "GET"}
-                );
-
-                if (response.ok) {
-                    let fileName = response.headers.get("file_name");
-                    let blob = await response.blob();
-                    let link = window.URL.createObjectURL(blob);
-                    let a = document.createElement('a');
-                    a.href = link;
-                    a.download = fileName;
-                    document.body.appendChild(a);
-                    a.click();
-                    document.body.removeChild(a);
-                    setUserFeedback(`File download started: '${fileName}'`, "green");
-                } else {
-                    let json = await response.json();
-                    handleError(json["detail"], "downloading file");
-                    return;
-                }
-            } catch (error) {
-                handleError(error, "downloading file");
-                return;
-            }
-            sessionID = "new";
-        } else {
-            setUserFeedback(`Invalid conversion: ${fileFormat} to ${toFormat}. Please try again with a different format.`, "orange");
-        }
-        
-    } else if (!validFormats.includes(fileFormat)) {
-        setUserFeedback("Please select a file with a valid format.", "orange");
-    } else if (toFormat == convertSelectPlaceholder) {
-        setUserFeedback("Please select a format to convert to.", "orange");
     }
+
+    document.getElementById("convert-loader").style.display = "block"; // Show loader
+
+    // Upload file
+    try {
+        setUserFeedback("Uploading files...", "green");
+
+        let formData = new FormData();
+        for (const file of Array.from(files)) {
+            formData.append("files", file); // Add file to body
+        }
+
+        let response = await fetch(
+            `${backendURL}/upload/?session_id=${sessionID}`, 
+            {method: "POST", 
+            body: formData}
+        );
+        let json = await response.json();
+
+        if (response.ok) {
+            sessionID = json["session_id"];
+            setUserFeedback(`Files uploaded successfully. Converting to ${toFormat}...`, "green");
+        } else {
+            handleError(json["detail"], "uploading file");
+            return;
+        }
+    } catch (error) {
+        handleError(error, "uploading file");
+        return;
+    }
+
+    // Convert file
+    try {
+        let response = await fetch(
+            `${backendURL}/convert/?session_id=${sessionID}&to_format=${toFormat}`, 
+            {method: "PATCH"}
+        );
+        let json = await response.json();
+
+        if (response.ok) {
+            setUserFeedback(`Files successfully converted to ${toFormat}. Downloading files from server...`, "green");
+        } else {
+            handleError(json["detail"], "converting file");
+            return;
+        }
+    } catch (error) {
+        handleError(error, "converting file");
+        return;
+    }
+
+    // Download file
+    try {
+        let response = await fetch(
+            `${backendURL}/download/?session_id=${sessionID}`, 
+            {method: "GET"}
+        );
+        if (response.ok) {
+            let fileName = response.headers.get("filename");
+            let blob = await response.blob();
+            let link = window.URL.createObjectURL(blob);
+            let a = document.createElement("a");
+            a.href = link;
+            a.download = fileName;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            document.getElementById("download-again-link").href = link;
+            document.getElementById("download-again-link").download = fileName;
+            document.getElementById("download-again").style.display = "inline";
+            setUserFeedback("Files download started.", "green");
+        } else {
+            let json = await response.json();
+            handleError(json["detail"], "downloading file");
+            return;
+        }
+    } catch (error) {
+        handleError(error, "downloading file");
+        return;
+    }
+    sessionID = "new";
     document.getElementById("convert-loader").style.display = "none"; // Hide loader
     return;
 }
 
 function handleError(error, context) {
     // Handles errors and gives user feedback.
+    let errorMessage;
+    if (error instanceof Error) {
+        errorMessage = error.message || JSON.stringify(error);
+    } else {
+        errorMessage = error;
+    }
     setUserFeedback(`An error occured while ${context}. Please try again.`, "red");
-    console.error(`An error occured while ${context}. Error: ${error}`);
+    console.error(`An error occured while ${context}. Error: ${errorMessage}`);
     document.getElementById("convert-loader").style.display = "none"; // Hide loader
 }
 

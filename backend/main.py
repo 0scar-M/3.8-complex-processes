@@ -1,7 +1,7 @@
 from dotenv import load_dotenv
 from fastapi import FastAPI, File, UploadFile, Query, HTTPException, Depends
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import StreamingResponse
+from fastapi.responses import Response, StreamingResponse
 import io
 import os
 import sqlite3 as sql
@@ -55,7 +55,6 @@ class DB:
         "Opens database connection."
         self.timeout_secs = 600 # 10 mins
         self.path = os.getenv("DATABASE_PATH") # get database path from environment variable. See docker-compose.yml
-        # when running on local machine: self.path = r"../database/database.db"
         self.conn = sql.connect(self.path, check_same_thread=False)
         self.cursor = self.conn.cursor()
     
@@ -145,7 +144,7 @@ def get_db():
         db.close()
 
 @app.post("/upload/")
-async def upload_file(session_id: str = Query(...), files: List[UploadFile] = [File(...)], db: DB = Depends(get_db)):
+async def upload_file(session_id: str = Query(...), files: List[UploadFile] = File(...), db: DB = Depends(get_db)):
     """
     Adds entry to files table.
     If session_id = new, then a new uuid will be returned and a new entry will be created in the sessions table for the file.
@@ -166,7 +165,7 @@ async def upload_file(session_id: str = Query(...), files: List[UploadFile] = [F
         db.query("DELETE FROM files WHERE session_id=?;", "removing old files from database", session_id) # Remove old files
     else:
         raise HTTPException(status_code=404, detail=f"Invalid session_id value '{session_id}'")
-
+    
     for file in files:
         file_name = file.filename
         file_format = correct_format(file.filename.split(".")[-1].upper())
@@ -267,32 +266,43 @@ async def download_file(session_id: str = Query(...), db: DB = Depends(get_db)):
     "Returns all files for a given session_id."
 
     # Get file contents and other data from db
-    files = db.query("SELECT name, contents FROM files WHERE session_id=? AND converted=1", "getting files from database", session_id)
+    files = db.query("SELECT name, contents, format FROM files WHERE session_id=? AND converted=1", "getting files from database", session_id)
     if not files:
         raise HTTPException(status_code=404, detail=f"File not found for session_id: '{session_id}'")
-    files = [[name, io.BytesIO(contents)] for name, contents in files]
 
-    zip_output = io.BytesIO()
-    
-    # Create a zip file in the zip_output BytesIO and add files to it
-    with zipfile.ZipFile(zip_output, "w") as zip_file:
-        # Add each file to the zip archive
-        for name, contents in files:
-            zip_file.writestr(name, contents.getvalue())
-    
-    zip_output.seek(0) # Reset pointer of BytesIO object to beginning
+    if len(files) == 1:
+        # Return single un-zipped file
+        return Response(
+            content=files[0][1], 
+            media_type= f"{get_media_type(files[0][2])}/{files[0][2]}".lower(), 
+            headers={"filename": files[0][0]}
+        )
+    else:
+        files = [[name, io.BytesIO(contents)] for name, contents, format in files]
+        # Return zipped files
+        zip_output = io.BytesIO()
+        
+        # Create a zip file in the zip_output BytesIO and add files to it
+        with zipfile.ZipFile(zip_output, "w", compression=zipfile.ZIP_DEFLATED, compresslevel=9) as zip_file:
+            # Add each file to the zip archive
+            for name, contents in files:
+                zip_file.writestr(name, contents.getvalue())
+        
+        zip_output.seek(0) # Reset pointer of BytesIO object to beginning
 
-    return StreamingResponse(
-        zip_output, 
-        media_type="application/x-zip-compressed", 
-        headers={"Content-Disposition": "attachment; filename=web-media-converter-converted-files.zip"}
-    )
+        return StreamingResponse(
+            zip_output, 
+            media_type="application/x-zip-compressed", 
+            headers={"Content-Disposition": "attachment; filename=web-media-converter-converted-files.zip", 
+                "filename":"web-media-converter-converted-files.zip"
+            }
+        )
 
 @app.get("/supported-formats/")
 async def supported_formats():
     "Returns all valid formats."
 
-    return valid_formats
+    return media_formats
 
 @app.get("/supported-conversions/")
 async def supported_conversions(format: str):
@@ -302,16 +312,6 @@ async def supported_conversions(format: str):
     if format in valid_formats:
         same_media_type_formats = [x for x in media_formats.values() if format in x][0]
         return [x for x in same_media_type_formats if is_valid_conversion((format, x))]
-    else:
-        raise HTTPException(status_code=404, detail=f"Invalid format: {format}")
-
-@app.get("/correct-format/")
-async def correct_format_endpoint(format: str):
-    "Returns the file format corrected to its standard form based on format_aliases."
-
-    format = correct_format(format)
-    if format in valid_formats:
-        return format
     else:
         raise HTTPException(status_code=404, detail=f"Invalid format: {format}")
 

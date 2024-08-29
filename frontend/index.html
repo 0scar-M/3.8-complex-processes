@@ -25,7 +25,8 @@
     <main>
         <form id="convert" action="event.preventDefault();">
             <div id="file-select">
-                <input type="file" id="file-input" oninput="event.preventDefault(); updateToFormats();">
+                <!-- <input type="file" id="file-input" oninput="event.preventDefault(); updateToFormats();"> -->
+                <input type="file" webkitdirectory directory multiple id="file-input" oninput="updateToFormats();"/>
                 <br>
                 or drag and drop
             </div>
@@ -41,19 +42,29 @@
                 Convert & Download <i class="fa-solid fa-download"></i>
             </button>
         </form>
-        <div id="convert-loader" class="loader"></div>
         <p id="user-feedback"></p>
-        
+        <div id="convert-loader" class="loader"></div>
+        <p id="download-again">To download again, click <a id="download-again-link">here</a></p>
+
         <br><br>
         <section id="about">
             <h2>About:</h2>
             <p>
                 Web Media Converter converts media files like image, video or audio files into other formats of the same media type (eg. JPG to PNG). It currently supports the following file formats:
             </p>
-            <ul id="supported-formats-list"><li>loading...</li></ul>
+            <table id="supported-formats-table">
+                <tr>
+                    <th>Image</th>
+                    <th>Video</th>
+                    <th>Audio</th>
+                </tr>
+                <tr id="supported-formats-placeholder">
+                    <td></td>
+                    <td>loading...</td>
+                </tr>
+            </table>
             <p>
-                Unsupported conversions:
-                SVG to any other image format
+                Unsupported conversions: Any other format to SVG
             </p>
         </section>
 

@@ -26,3 +26,11 @@ h1 {
     border: 6px solid #444;
     border-right-color: #14abf7;
 }
+
+#download-again-link {
+    color: white;
+}
+
+th {
+    border-bottom: 2px solid white;
+}
