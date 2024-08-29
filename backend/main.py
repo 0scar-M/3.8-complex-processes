@@ -18,7 +18,7 @@ load_dotenv()
 # Define global variables
 frontend_url = f"http://{os.getenv("HOST_NAME")}"
 media_formats = { # All suported formats for each media type.
-    "image": ("BMP", "GIF", "JFIF", "JPG", "PNG", "SVG", "TIF", "WEBP"), 
+    "image": ("BMP", "GIF", "JPG", "PNG", "SVG", "TIF", "WEBP"), 
     "video": ("AVI", "FLV", "MKV", "MOV", "MP4", "WMV"), 
     "audio": ("AAC", "FLAC", "MP3", "OGG", "WAV", "WMA")
 }
