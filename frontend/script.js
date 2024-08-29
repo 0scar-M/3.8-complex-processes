@@ -88,8 +88,7 @@ async function updateToFormats() {
         let option = document.createElement("option");
         option.value = value;
         option.innerHTML = value;
-        document.getElem
-        entById("format-select").appendChild(option);
+        document.getElementById("format-select").appendChild(option);
     }
     document.getElementById("download-again").style.display = "none"; // Hide download again link
     
