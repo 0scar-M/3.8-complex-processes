@@ -102,7 +102,7 @@ async function updateToFormats() {
     formats = [];
     toFormatOptions = [];
     for (const file of Array.from(files)) {
-        let format = file.name.split(".")[1].toUpperCase();
+        let format = file.name.split(".")[file.name.split(".").length - 1].toUpperCase();
         formats.push(format);
         try {
             let response = await fetch(
