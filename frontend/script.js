@@ -172,6 +172,7 @@ async function convertFile() {
     Converts the file.
     Called by the submission of the #convert form.
     */
+    document.getElementById("download-again").style.display = "none"; // Hide download again link
 
     let toFormat = document.getElementById("format-select").value;
     files = document.getElementById("file-input").files;
@@ -261,7 +262,7 @@ async function convertFile() {
         handleError(error, "converting file");
         return;
     }
-
+    
     // Download file
     try {
         let response = await fetch(

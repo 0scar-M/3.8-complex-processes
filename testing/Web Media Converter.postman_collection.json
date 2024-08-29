@@ -28,24 +28,18 @@
 					"mode": "formdata",
 					"formdata": [
 						{
-							"key": "file",
+							"key": "files",
 							"type": "file",
 							"src": "/C:/Users/Zbook User/Desktop/Python Projects/DIT/Assesments/3.8-complex-processes/3.8-complex-processes/testing/test-files/image/file_example_JPG_1MB.jpg"
 						}
 					]
 				},
 				"url": {
-					"raw": "http://127.0.0.1:8000/upload/?session_id=new",
-					"protocol": "http",
+					"raw": "{{api_url}}upload/?session_id=new",
 					"host": [
-						"127",
-						"0",
-						"0",
-						"1"
+						"{{api_url}}upload"
 					],
-					"port": "8000",
 					"path": [
-						"upload",
 						""
 					],
 					"query": [
@@ -76,17 +70,11 @@
 				"method": "PATCH",
 				"header": [],
 				"url": {
-					"raw": "http://127.0.0.1:8000/convert/?session_id={{session_id}}&to_format=PNG",
-					"protocol": "http",
+					"raw": "{{api_url}}convert/?session_id={{session_id}}&to_format=PNG",
 					"host": [
-						"127",
-						"0",
-						"0",
-						"1"
+						"{{api_url}}convert"
 					],
-					"port": "8000",
 					"path": [
-						"convert",
 						""
 					],
 					"query": [
@@ -109,17 +97,11 @@
 				"method": "GET",
 				"header": [],
 				"url": {
-					"raw": "http://127.0.0.1:8000/download/?session_id={{session_id}}",
-					"protocol": "http",
+					"raw": "{{api_url}}download/?session_id={{session_id}}",
 					"host": [
-						"127",
-						"0",
-						"0",
-						"1"
+						"{{api_url}}download"
 					],
-					"port": "8000",
 					"path": [
-						"download",
 						""
 					],
 					"query": [
@@ -138,17 +120,9 @@
 				"method": "GET",
 				"header": [],
 				"url": {
-					"raw": "http://127.0.0.1:8000/supported-formats",
-					"protocol": "http",
+					"raw": "{{api_url}}supported-formats",
 					"host": [
-						"127",
-						"0",
-						"0",
-						"1"
-					],
-					"port": "8000",
-					"path": [
-						"supported-formats"
+						"{{api_url}}supported-formats"
 					]
 				}
 			},
@@ -160,46 +134,11 @@
 				"method": "GET",
 				"header": [],
 				"url": {
-					"raw": "http://127.0.0.1:8000/supported-conversions/?format=JPG",
-					"protocol": "http",
+					"raw": "{{api_url}}supported-conversions/?format=JPEG",
 					"host": [
-						"127",
-						"0",
-						"0",
-						"1"
+						"{{api_url}}supported-conversions"
 					],
-					"port": "8000",
 					"path": [
-						"supported-conversions",
-						""
-					],
-					"query": [
-						{
-							"key": "format",
-							"value": "JPG"
-						}
-					]
-				}
-			},
-			"response": []
-		},
-		{
-			"name": "Correct Format",
-			"request": {
-				"method": "GET",
-				"header": [],
-				"url": {
-					"raw": "http://127.0.0.1:8000/correct-format/?format=JPEG",
-					"protocol": "http",
-					"host": [
-						"127",
-						"0",
-						"0",
-						"1"
-					],
-					"port": "8000",
-					"path": [
-						"correct-format",
 						""
 					],
 					"query": [
@@ -218,17 +157,11 @@
 				"method": "GET",
 				"header": [],
 				"url": {
-					"raw": "http://127.0.0.1:8000/is-valid-conversion/?from_format=JPEG&to_format=MP4",
-					"protocol": "http",
+					"raw": "{{api_url}}is-valid-conversion/?from_format=JPEG&to_format=SVG",
 					"host": [
-						"127",
-						"0",
-						"0",
-						"1"
+						"{{api_url}}is-valid-conversion"
 					],
-					"port": "8000",
 					"path": [
-						"is-valid-conversion",
 						""
 					],
 					"query": [
@@ -238,7 +171,7 @@
 						},
 						{
 							"key": "to_format",
-							"value": "MP4"
+							"value": "SVG"
 						}
 					]
 				}
@@ -271,6 +204,10 @@
 	"variable": [
 		{
 			"key": "session_id",
+			"value": ""
+		},
+		{
+			"key": "api_url",
 			"value": ""
 		}
 	]
