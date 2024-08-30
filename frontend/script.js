@@ -1,5 +1,5 @@
 const backendURL = `http://${window.location.hostname}:5000`;
-const convertSelectPlaceholder = "please select something to convert";
+const convertSelectPlaceholder = "please select a file";
 const darkModeStylesHref = "dark-styles.css";
 let sessionID = "new";
 let darkmode = false;
