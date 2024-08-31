@@ -163,7 +163,7 @@ async function updateToFormats() {
         files = null;
         formats = null;
         toFormatOptions = null;
-        setUserFeedback("Please select files that can be converted to a shared format.", "orange");
+        setUserFeedback("Please select files of the same media type.", "orange");
         setOptions(convertSelectPlaceholder, true);
     }
 }
@@ -185,7 +185,7 @@ async function convertFile() {
     }
     // Check all files can be converted to a shared format
     if (toFormatOptions == null) {
-        setUserFeedback("Please select files that can be converted to a shared format.", "orange");
+        setUserFeedback("Please select files of the same media type.", "orange");
         return;
     }
     // Check toFormat is valid
