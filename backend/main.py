@@ -33,7 +33,7 @@ format_aliases = { # Some formats have multiple names, this provides a way to co
 valid_formats = [x for y in media_formats.values() for x in y] # Set valid_formats to list of all valid formats
 invalid_conversions = [("FLV", "MKV")]
 invalid_conversions = [(x, "SVG") for x in media_formats["image"] if x != "SVG"] # Cannot convert raster to vector
-invalid_conversions += [(x, "SVG") for x in media_formats["image"] if x != "TIF"]
+invalid_conversions += [(x, "TIF") for x in media_formats["image"] if x != "TIF"]
 
 # Configure FastAPI app
 app = FastAPI()
