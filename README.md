@@ -1,5 +1,11 @@
 # 3.8-complex-processes
 
+My submission for the NCEA Level 3 3.8 Complex Processes assessment.
+
+**Project Title**: Web Media Converter
+
+**Project Description**: A web app that converts media files into different formats.
+
 ## docker-compose.yml for running application
 ```yml
 services:
