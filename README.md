@@ -6,6 +6,10 @@ My submission for the NCEA Level 3 3.8 Complex Processes assessment.
 
 **Project Description**: A web app that converts media files into different formats.
 
+Hosted on DigitalOcean at http://170.64.162.244/
+
+To run project, create docker-compose.yml file and paste in the yaml code below. Then run ```docker compose up```.
+
 ## docker-compose.yml for running application
 ```yml
 services:
