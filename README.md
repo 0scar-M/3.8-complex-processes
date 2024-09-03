@@ -8,7 +8,10 @@ My submission for the NCEA Level 3 3.8 Complex Processes assessment.
 
 Hosted on DigitalOcean at http://170.64.162.244/
 
-To run the project, create docker-compose.yml file and paste in the yaml code below. Then run ```docker compose up```. The app will then be available on local port 80, and you can view it at http://localhost/.
+To run the project, firstly install [Docker Desktop](https://www.docker.com/products/docker-desktop/).
+Next, create a docker-compose.yml file and paste in the yaml code below. 
+Then, in the directory of the docker-compose.yml file, run ```docker compose up```. 
+The app will then be available on local port 80, and you will be able to view it at http://localhost/.
 
 ## ```docker-compose.yml``` file for running application on local machine:
 ```yml
