@@ -8,9 +8,9 @@ My submission for the NCEA Level 3 3.8 Complex Processes assessment.
 
 Hosted on DigitalOcean at http://170.64.162.244/
 
-To run project, create docker-compose.yml file and paste in the yaml code below. Then run ```docker compose up```.
+To run the project, create docker-compose.yml file and paste in the yaml code below. Then run ```docker compose up```. The app will then be available on local port 80, and you can view it at http://localhost/.
 
-## docker-compose.yml for running application on local machine
+## ```docker-compose.yml``` file for running application on local machine:
 ```yml
 services:
   frontend:
@@ -28,7 +28,7 @@ services:
       - "5000:5000"
     environment:
       - DATABASE_PATH=/data/database.db
-      - HOST_NAME=170.64.162.244
+      - HOST_NAME=localhost
     depends_on:
       - database
   
