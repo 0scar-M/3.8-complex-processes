@@ -17,14 +17,14 @@ First of all, install docker and start the daemon. Then, create a file called ``
 ```yml
 services:
   frontend:
-    image: 21omccartney/3.8—comp1ex—processes:frontend
+    image: 21omccartney/3.8-complex-processes:frontend
     ports:
       - "80:80"
     depends_on:
       - backend
 
   backend:
-    image: 21omccartney/3.8—comp1ex—processes:backend
+    image: 21omccartney/3.8-complex-processes:backend
     volumes:
       - db_volume:/data
     ports:
@@ -32,11 +32,12 @@ services:
     environment:
       - DATABASE_PATH=/data/database.db
       - HOST_NAME=localhost
+      - HOST_NAME=localhost
     depends_on:
       - database
   
   database:
-    image: 21omccartney/3.8—comp1ex—processes:database
+    image: 21omccartney/3.8-complex-processes:database
     volumes:
       - db_volume:/data
 
