@@ -32,7 +32,6 @@ services:
     environment:
       - DATABASE_PATH=/data/database.db
       - HOST_NAME=localhost
-      - HOST_NAME=localhost
     depends_on:
       - database
   
