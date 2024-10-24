@@ -6,7 +6,7 @@ My submission for the NCEA Level 3 3.8 Complex Processes assessment.
 
 **Project Description**: A web app that converts media files into different formats.
 
-You can view the project at hosted on DigitalOcean [here](http://170.64.162.244/).
+~~You can view the project at hosted on DigitalOcean [here](http://170.64.162.244/).~~
 
 [DockerHub Repo](https://hub.docker.com/repository/docker/21omccartney/3.8-complex-processes/general)
 
@@ -45,7 +45,7 @@ volumes:
 ```
 
 # Server Setup
-Firstly, create a regular user called user (or whatever you want), before installing docker and starting the daemon. Then create a user group called docker and add the new user to the group as per [this guide](https://docs.docker.com/engine/install/linux-postinstall/). Next, in the home directory of user, make a directory 'app' containing the ```docker-compose.yml``` file for running the app (make sure to change HOST_NAME from localhost to the server adress), and a directory 'watchtower' containing the watchtower ```docker-compose.yml``` file. To run the app, start the watchtower container and then the app containers by running ```docker compose up -d``` in the directory with the respective yml files.
+Firstly, create a regular user called user (or whatever you want), before installing docker and starting the daemon. Then follow [this guide](https://docs.docker.com/engine/install/linux-postinstall/) to enable non-root access to docker and start docker on power on. Next, in the home directory of user, make a directory 'app' containing the ```docker-compose.yml``` file for running the app (make sure to change HOST_NAME from localhost to the server adress), and a directory 'watchtower' containing the watchtower ```docker-compose.yml``` file. To run the app, start the watchtower container and then the app containers by running ```docker compose up -d``` in the directory with the respective yml files. To make these containers start on power on, follow [this guide](https://docs.docker.com/engine/containers/start-containers-automatically/).
 
 ## ```docker-compose.yml``` file for watchtower
 ```yml
