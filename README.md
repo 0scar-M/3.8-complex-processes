@@ -46,10 +46,7 @@ volumes:
 ```
 
 # Server Setup
-Create either a regular user called user (or whatever you want).
-Install docker and start the daemon.
-Create a user group called docker and add the new user to the group as per [this guide](https://docs.docker.com/engine/install/linux-postinstall/).
-In the home directory of user, make a directory 'app' containing the ```docker-compose.yml``` file for running the app (make sure to change HOST_NAME from localhost to the server adress), and a directory 'watchtower' containing the watchtower ```docker-compose.yml``` file. To run the app, start the watchtower container and then the app containers by running ```docker compose pull``` then ```docker compose up -d``` in the directory with the respective yml files.
+Firstly, create a regular user called user (or whatever you want), before installing docker and starting the daemon. Then create a user group called docker and add the new user to the group as per [this guide](https://docs.docker.com/engine/install/linux-postinstall/). Next, in the home directory of user, make a directory 'app' containing the ```docker-compose.yml``` file for running the app (make sure to change HOST_NAME from localhost to the server adress), and a directory 'watchtower' containing the watchtower ```docker-compose.yml``` file. To run the app, start the watchtower container and then the app containers by running ```docker compose pull``` then ```docker compose up -d``` in the directory with the respective yml files.
 
 ## ```docker-compose.yml``` file for watchtower
 ```yml
