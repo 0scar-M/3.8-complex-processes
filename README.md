@@ -1,5 +1,7 @@
 # 3.8-complex-processes
 
+**WARNING The Digital Ocean container has been delted, and the Docker Hub images, repo and account have also been deleted. You can no longer pull these images with docker pull 21omccartney/3.8-complex-processes or access the link below.**
+
 My submission for the NCEA Level 3 3.8 Complex Processes assessment.
 
 **Project Title**: Web Media Converter
@@ -8,7 +10,7 @@ My submission for the NCEA Level 3 3.8 Complex Processes assessment.
 
 ~~You can view the project at hosted on DigitalOcean [here](http://170.64.162.244/).~~
 
-[DockerHub Repo](https://hub.docker.com/repository/docker/21omccartney/3.8-complex-processes/general)
+~~[DockerHub Repo](https://hub.docker.com/repository/docker/21omccartney/3.8-complex-processes/general)~~
 
 # Running app on local machine
 First of all, install docker and start the daemon. Then, create a file called ```docker-compose.yml``` with the below yml code (preferably in an empty directory). Then in the directory with the yml file, run ```docker compose up -d``` (```-d``` means you can continue to run commands after starting the app). The application should now be available at http://localhost/.
